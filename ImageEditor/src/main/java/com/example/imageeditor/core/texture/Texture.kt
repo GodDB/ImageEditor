@@ -1,21 +1,17 @@
 package com.example.imageeditor.core.texture
 
-import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.opengl.GLES20
 import android.opengl.GLUtils
-import androidx.annotation.DrawableRes
 import com.example.imageeditor.core.GLESBinder
 import com.example.imageeditor.utils.runGL
 
-class Texture(context: Context, @DrawableRes imageRes: Int) : GLESBinder{
+class Texture(bitmap: Bitmap) : GLESBinder {
 
     val bufferId: Int
 
     init {
         bufferId = genTextureBuffer()
-        val bitmap = genBitmap(context, imageRes)
         loadTextureBuffer(bufferId, bitmap)
     }
 
@@ -29,13 +25,6 @@ class Texture(context: Context, @DrawableRes imageRes: Int) : GLESBinder{
         return textureObjectIds.first()
     }
 
-    private fun genBitmap(context: Context, imageRes: Int): Bitmap {
-        val bitmapOptions = BitmapFactory.Options().apply {
-            this.inScaled = false // 원본 이미지로 달라!
-        }
-
-        return BitmapFactory.decodeResource(context.resources, imageRes, bitmapOptions) ?: throw java.lang.RuntimeException("not generated bitmap")
-    }
 
     private fun loadTextureBuffer(bufferId: Int, bitmap: Bitmap) {
         // texture buffer activate
