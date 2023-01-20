@@ -44,6 +44,22 @@ fun FloatArray.toBuffer(): FloatBuffer {
         }
 }
 
+fun FloatBuffer.deepCopy() : FloatBuffer {
+    return this.toFloatArray().toBuffer()
+}
+
+fun FloatArray.asBuffer() : FloatBuffer {
+    return FloatBuffer.wrap(this).apply {
+        position(0)
+    }
+}
+
+fun IntArray.asBuffer() : IntBuffer {
+    return IntBuffer.wrap(this).apply {
+        position(0)
+    }
+}
+
 fun List<Int>.toBuffer(): IntBuffer {
     return ByteBuffer
         .allocateDirect(this.size * FLOAT_BYTE_SIZE) // native 메모리 할당 사이즈
@@ -68,6 +84,38 @@ fun List<Float>.toBuffer(): FloatBuffer {
             }
             position(0)
         }
+}
+
+fun FloatBuffer.toFloatArray(): FloatArray {
+    val newArray = FloatArray(this.capacity())
+    for (i in 0 until this.capacity()) {
+        newArray[i] = this.get(i)
+    }
+    return newArray
+}
+
+fun IntBuffer.toIntArray(): IntArray {
+    val newArray = IntArray(this.capacity())
+    for (i in 0 until this.capacity()) {
+        newArray[i] = this.get(i)
+    }
+    return newArray
+}
+
+fun FloatBuffer.asFloatArray() : FloatArray {
+    return if(this.hasArray()) {
+        this.array()
+    } else {
+        this.toFloatArray()
+    }
+}
+
+fun IntBuffer.asIntArray() : IntArray {
+    return if(this.hasArray()) {
+        this.array()
+    } else {
+        this.toIntArray()
+    }
 }
 
 fun createIdentity4Matrix(): FloatArray {

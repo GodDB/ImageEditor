@@ -2,64 +2,40 @@ package com.example.imageeditor
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.PointF
 import android.opengl.GLES20
-import android.opengl.GLSurfaceView
 import android.util.Log
-import com.example.imageeditor.core.shader.Shader
-import com.example.imageeditor.core.shader.ShaderProgram
+import com.example.imageeditor.core.GLESRenderer
+import com.example.imageeditor.model.GLESModel
 import com.example.imageeditor.model.ImageModel
-import com.example.imageeditor.utils.FileReader
+import com.example.imageeditor.model.ModelOverlay
 import com.example.imageeditor.utils.runGL
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
-class ImageEditorRenderer(private val context: Context) : GLSurfaceView.Renderer {
+internal class ImageEditorRenderer(private val context: Context) : GLESRenderer() {
 
-    private val imageProgram by lazy {
-        runGL {
-            val vertexShaderSourceCode = FileReader.readFile(context, R.raw.vertext_shader)
-            val fragmentShaderSourceCode = FileReader.readFile(context, R.raw.fragment_shader)
-            ShaderProgram(
-                vertexShader = Shader(vertexShaderSourceCode, Shader.Type.VERTEX),
-                fragmentShader = Shader(fragmentShaderSourceCode, Shader.Type.FRAGMENT)
-            )
-        }
-    }
+    private val models = mutableListOf<GLESModel>()
 
-    // 모델과 프로그램의 순서는 동일해야 한다.
-    private val models by lazy {
-        listOf(
-            ImageModel()
-        )
-    }
+    private var glViewWidth: Int = 0
+    private var glViewHeight: Int = 0
 
-    private val programs by lazy {
-        listOf(
-            imageProgram
-        )
-    }
+    private var pressedPoint: PointF? = null
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         Log.e("godgod", "onSurfaceCreated")
-        models.forEachIndexed { index, model ->
-            val mappingProgram = programs[index]
-            mappingProgram.bind()
-            model.onSurfaceCreated(mappingProgram)
-            mappingProgram.unbind()
-        }
     }
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
         Log.e("godgod", "onSurfaceChanged")
+        glViewWidth = width
+        glViewHeight = height
         runGL { GLES20.glViewport(0, 0, width, height) }
         runGL { GLES20.glEnable(GLES20.GL_CULL_FACE) } // 벡터 외적이 후면을 바라보는 부분 제거
         runGL { GLES20.glEnable(GLES20.GL_DEPTH_TEST) } // z버퍼 생성
 
-        models.forEachIndexed { index, model ->
-            val mappingProgram = programs[index]
-            mappingProgram.bind()
-            model.onSurfaceChanged(width, height, mappingProgram)
-            mappingProgram.unbind()
+        models.forEach {
+            it.init(glViewWidth, glViewHeight)
         }
     }
 
@@ -67,15 +43,50 @@ class ImageEditorRenderer(private val context: Context) : GLSurfaceView.Renderer
         runGL { GLES20.glClearColor(0f, 0f, 0f, 0f) }
         runGL { GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT or GLES20.GL_COLOR_BUFFER_BIT) }
 
-        models.forEachIndexed { index, model ->
-            val mappingProgram = programs[index]
-            mappingProgram.bind()
-            model.onDrawFrame(mappingProgram)
-            mappingProgram.unbind()
+        models.forEach {
+            it.draw()
         }
     }
 
-    fun setImageBitmap(bitmap: Bitmap) {
-        models.first().setBitmap(bitmap)
+    fun addBitmap(bitmap: Bitmap) {
+        val newModel = ModelOverlay(
+            context,
+            ImageModel(bitmap, context)
+        )
+        if (currentState.value >= Lifecycle.DRAW.value) {
+            newModel.init(glViewWidth, glViewHeight)
+        }
+        models.add(newModel)
+    }
+
+    fun onTouchDown(x: Float, y: Float) {
+        val normalizeX = ((x / glViewWidth) * 2) - 1
+        val normalizeY = 1 - ((y / glViewHeight) * 2)
+        pressedPoint = PointF(normalizeX, normalizeY)
+        for (model in models) {
+            if (model.onTouchDown(normalizeX, normalizeY)) {
+                return
+            }
+        }
+    }
+
+    fun onTouchMove(x: Float, y: Float) {
+        val normalizeX = ((x / glViewWidth) * 2) - 1
+        val normalizeY = 1 - ((y / glViewHeight) * 2)
+        for (model in models) {
+            val deltaX = (pressedPoint?.x ?: 0f) - normalizeX
+            val deltaY = (pressedPoint?.y ?: 0f) - normalizeY
+            Log.e("godgod", "$deltaX   $deltaY")
+            model.onTouchMove(normalizeX, normalizeY, deltaX, deltaY)
+        }
+        pressedPoint?.x = normalizeX
+        pressedPoint?.y = normalizeY
+    }
+
+    fun onTouchUp() {
+        for (model in models) {
+            model.onTouchUp()
+        }
+        pressedPoint = null
     }
 }

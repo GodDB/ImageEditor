@@ -10,6 +10,9 @@ class Texture(bitmap: Bitmap) : GLESBinder {
 
     val bufferId: Int
 
+    val width = bitmap.width
+    val height = bitmap.height
+
     init {
         bufferId = genTextureBuffer()
         loadTextureBuffer(bufferId, bitmap)
