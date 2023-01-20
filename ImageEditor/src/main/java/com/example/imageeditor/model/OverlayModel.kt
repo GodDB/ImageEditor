@@ -10,22 +10,30 @@ import com.example.imageeditor.utils.FLOAT_BYTE_SIZE
 import com.example.imageeditor.utils.FileReader
 import com.example.imageeditor.utils.asBuffer
 import com.example.imageeditor.utils.createIdentity4Matrix
-import com.example.imageeditor.utils.deepCopy
 import com.example.imageeditor.utils.floatBufferOf
 import com.example.imageeditor.utils.intBufferOf
 import com.example.imageeditor.utils.runGL
+import com.example.imageeditor.utils.toBuffer
 import com.example.imageeditor.utils.toFloatArray
 import java.nio.FloatBuffer
 
-internal class ModelOverlay(
+internal class OverlayModel(
     context: Context,
-    private val otherModel: GLESModel
+    private val contentsModel: GLESModel
 ) : GLESModel {
 
     private var _combinedM: FloatBuffer = createIdentity4Matrix().asBuffer()
     override val combinedM: FloatBuffer
-        get() = _combinedM.deepCopy()
+        get() = kotlin.run {
+            val combined = _combinedM.toFloatArray()
+            createIdentity4Matrix().apply {
+                Matrix.multiplyMM(this, 0, combined, 0, scaleMatrix.array(), 0)
+            }.toBuffer()
+        }
 
+    private val scaleMatrix = createIdentity4Matrix().apply {
+        Matrix.scaleM(this, 0, 1.1f, 1.1f, 1.1f)
+    }.asBuffer()
 
     private val vertices = floatBufferOf(
         // x, y, z
@@ -60,18 +68,18 @@ internal class ModelOverlay(
     private var isPressed: Boolean = false
 
     override fun init(width: Int, height: Int) {
-        otherModel.init(width, height)
-        val otherMatrix = otherModel.combinedM.toFloatArray()
-        Matrix.scaleM(otherMatrix, 0, 1.1f, 1.1f, 1.1f)
+        contentsModel.init(width, height)
+        val otherMatrix = contentsModel.combinedM.toFloatArray()
         _combinedM = otherMatrix.asBuffer()
     }
 
     override fun draw() {
-        otherModel.draw()
+        contentsModel.draw()
         if (!isVisible) return
         program.bind()
 
         program.updateUniformMatrix4f("u_Model", _combinedM)
+        program.updateUniformMatrix4f("extra_u_Model", scaleMatrix)
 
         val vertexPointer = runGL { program.getAttributePointer("v_Position") }
 
@@ -92,7 +100,7 @@ internal class ModelOverlay(
         isPressed = isTouched(x, y)
         setVisible(isPressed)
         if (isPressed) {
-            otherModel.onTouchDown(x, y)
+            contentsModel.onTouchDown(x, y)
         }
         return isPressed
     }
@@ -110,13 +118,14 @@ internal class ModelOverlay(
 
     override fun onTouchMove(x: Float, y: Float, deltaX: Float, deltaY: Float) {
         if (!isPressed) return
-        otherModel.onTouchMove(x, y, deltaX, deltaY)
+        contentsModel.onTouchMove(x, y, deltaX, deltaY)
+
         Matrix.translateM(_combinedM.array(), 0, deltaX, deltaY, 0f)
     }
 
     override fun onTouchUp() {
         if (!isPressed) return
-        otherModel.onTouchUp()
+        contentsModel.onTouchUp()
         isPressed = false
         setVisible(isPressed)
     }

@@ -2,10 +2,8 @@ package com.example.imageeditor.model
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.PointF
 import android.opengl.GLES20
 import android.opengl.Matrix
-import android.util.Log
 import com.example.imageeditor.R
 import com.example.imageeditor.core.shader.Shader
 import com.example.imageeditor.core.shader.ShaderProgram
@@ -14,12 +12,9 @@ import com.example.imageeditor.utils.FLOAT_BYTE_SIZE
 import com.example.imageeditor.utils.FileReader
 import com.example.imageeditor.utils.asBuffer
 import com.example.imageeditor.utils.createIdentity4Matrix
-import com.example.imageeditor.utils.deepCopy
 import com.example.imageeditor.utils.floatBufferOf
 import com.example.imageeditor.utils.intBufferOf
 import com.example.imageeditor.utils.runGL
-import com.example.imageeditor.utils.toBuffer
-import com.example.imageeditor.utils.toFloatArray
 import java.nio.FloatBuffer
 
 internal class ImageModel(
@@ -50,8 +45,8 @@ internal class ImageModel(
 
     override val program by lazy {
         runGL {
-            val vertexShaderSourceCode = FileReader.readFile(context, R.raw.vertex_shader)
-            val fragmentShaderSourceCode = FileReader.readFile(context, R.raw.fragment_shader)
+            val vertexShaderSourceCode = FileReader.readFile(context, R.raw.image_vertex_shader)
+            val fragmentShaderSourceCode = FileReader.readFile(context, R.raw.image_fragment_shader)
             ShaderProgram(
                 vertexShader = Shader(vertexShaderSourceCode, Shader.Type.VERTEX),
                 fragmentShader = Shader(fragmentShaderSourceCode, Shader.Type.FRAGMENT)

@@ -8,7 +8,7 @@ import android.util.Log
 import com.example.imageeditor.core.GLESRenderer
 import com.example.imageeditor.model.GLESModel
 import com.example.imageeditor.model.ImageModel
-import com.example.imageeditor.model.ModelOverlay
+import com.example.imageeditor.model.OverlayModel
 import com.example.imageeditor.utils.runGL
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
@@ -49,7 +49,7 @@ internal class ImageEditorRenderer(private val context: Context) : GLESRenderer(
     }
 
     fun addBitmap(bitmap: Bitmap) {
-        val newModel = ModelOverlay(
+        val newModel = OverlayModel(
             context,
             ImageModel(bitmap, context)
         )
@@ -76,8 +76,7 @@ internal class ImageEditorRenderer(private val context: Context) : GLESRenderer(
         for (model in models) {
             val deltaX = (pressedPoint?.x ?: 0f) - normalizeX
             val deltaY = (pressedPoint?.y ?: 0f) - normalizeY
-            Log.e("godgod", "$deltaX   $deltaY")
-            model.onTouchMove(normalizeX, normalizeY, deltaX, deltaY)
+            model.onTouchMove(normalizeX, normalizeY, deltaX, deltaY * 3)
         }
         pressedPoint?.x = normalizeX
         pressedPoint?.y = normalizeY
