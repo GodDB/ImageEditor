@@ -77,6 +77,11 @@ class ShaderProgram(vertexShader: Shader, fragmentShader: Shader) : GLESBinder {
         runGL { GLES20.glUniform3f(pointer, x, y, z) }
     }
 
+    fun updateUniformInt(key: String, value: Int) {
+        val pointer = getUniformPointer(key)
+        runGL { GLES20.glUniform1i(pointer, value) }
+    }
+
     override fun bind() {
         runGL { GLES20.glUseProgram(programId) }
     }

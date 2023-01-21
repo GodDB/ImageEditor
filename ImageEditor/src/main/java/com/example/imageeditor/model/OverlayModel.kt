@@ -45,10 +45,20 @@ internal class OverlayModel(
         }
     }
 
+    private val leftTopCircle = TextureCircleModel(
+        context = context,
+        imgRes = com.google.android.material.R.drawable.ic_clock_black_24dp,
+        centerX = 0f,
+        centerY = 0f,
+        centerZ = 0f,
+        radius = 0.5f
+    )
+
     private var isPressed: Boolean = false
 
     override fun init(width: Int, height: Int) {
         contentsModel.init(width, height)
+        leftTopCircle.init(width, height)
         updateTranslation(contentsModel.transM.deepCopy())
         updateRotation(contentsModel.rotateM.deepCopy())
         updateScale(contentsModel.scaleM.deepCopy())
@@ -57,6 +67,7 @@ internal class OverlayModel(
 
     override fun draw() {
         contentsModel.draw()
+        leftTopCircle.draw()
         if (!isVisible) return
         program.bind()
 
