@@ -16,13 +16,17 @@ internal abstract class GLESModel(
     protected val rotateBuffer = rotateM.asBuffer()
 
     abstract val program: ShaderProgram
-    abstract val isVisible: Boolean
+    private var _isVisible: Boolean = true
+    val isVisible: Boolean
+        get() = _isVisible
 
     abstract fun init(width: Int, height: Int)
 
     abstract fun draw()
 
-    abstract fun setVisible(visible: Boolean)
+    fun setVisible(visible: Boolean) {
+        _isVisible = visible
+    }
 
     open fun onTouchDown(x: Float, y: Float): Boolean {
         return false
@@ -36,15 +40,15 @@ internal abstract class GLESModel(
 
     }
 
-    fun updateTranslation(newTransM : FloatArray) {
+    fun updateTranslation(newTransM: FloatArray) {
         Matrix.multiplyMM(transM, 0, transM, 0, newTransM, 0)
     }
 
-    fun updateRotation(newRotateM : FloatArray) {
+    fun updateRotation(newRotateM: FloatArray) {
         Matrix.multiplyMM(rotateM, 0, rotateM, 0, newRotateM, 0)
     }
 
-    fun updateScale(newScaleM : FloatArray) {
+    fun updateScale(newScaleM: FloatArray) {
         Matrix.multiplyMM(scaleM, 0, scaleM, 0, newScaleM, 0)
     }
 

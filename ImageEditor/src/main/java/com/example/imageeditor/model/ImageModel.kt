@@ -55,10 +55,6 @@ internal class ImageModel(
         }
     }
 
-    private var _isVisible: Boolean = true
-    override val isVisible: Boolean
-        get() = _isVisible
-
     private val texture: Texture by lazy {
         Texture(bitmap)
     }
@@ -115,9 +111,5 @@ internal class ImageModel(
         vertices.position(3)
         runGL { GLES20.glVertexAttribPointer(texturePointer, 2, GLES20.GL_FLOAT, false, 5 * FLOAT_BYTE_SIZE, vertices) } // vertex정보들을 vertexArray에게 전달한다.
         runGL { GLES20.glEnableVertexAttribArray(texturePointer) } // vertexArray를 활성화 한다.
-    }
-
-    override fun setVisible(visible: Boolean) {
-        _isVisible = visible
     }
 }

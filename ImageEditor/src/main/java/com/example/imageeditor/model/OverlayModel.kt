@@ -2,11 +2,13 @@ package com.example.imageeditor.model
 
 import android.content.Context
 import android.opengl.GLES20
+import android.opengl.Matrix
 import com.example.imageeditor.R
 import com.example.imageeditor.core.shader.Shader
 import com.example.imageeditor.core.shader.ShaderProgram
 import com.example.imageeditor.utils.FLOAT_BYTE_SIZE
 import com.example.imageeditor.utils.FileReader
+import com.example.imageeditor.utils.createIdentity4Matrix
 import com.example.imageeditor.utils.deepCopy
 import com.example.imageeditor.utils.floatBufferOf
 import com.example.imageeditor.utils.intBufferOf
@@ -43,10 +45,6 @@ internal class OverlayModel(
         }
     }
 
-    private var _isVisible: Boolean = false
-    override val isVisible: Boolean
-        get() = _isVisible
-
     private var isPressed: Boolean = false
 
     override fun init(width: Int, height: Int) {
@@ -77,10 +75,6 @@ internal class OverlayModel(
         program.unbind()
     }
 
-    override fun setVisible(visible: Boolean) {
-        _isVisible = visible
-    }
-
     override fun onTouchDown(x: Float, y: Float): Boolean {
         isPressed = isTouched(x, y)
         setVisible(isPressed)
@@ -91,15 +85,17 @@ internal class OverlayModel(
     }
 
     private fun isTouched(x: Float, y: Float): Boolean {
-        return true
-        /*  val inverseCombinedM = createIdentity4Matrix()
-          Matrix.invertM(inverseCombinedM, 0, combinedM, 0)
-          val point = floatArrayOf(x, y, 0f, 1f)
-          val notNormalizePoint = floatArrayOf(0f, 0f, 0f, 0f)
-          Matrix.multiplyMV(notNormalizePoint, 0, inverseCombinedM, 0, point, 0)
+        val inversedCombinedM = createIdentity4Matrix().apply {
+            Matrix.multiplyMM(this, 0, transM, 0, rotateM, 0)
+            Matrix.multiplyMM(this, 0, this, 0, scaleM, 0)
+            Matrix.invertM(this, 0, this, 0)
+        }
+        val notNormalizePoint = floatArrayOf(x, y, 0f, 1f).apply {
+            Matrix.multiplyMV(this, 0, inversedCombinedM, 0, this, 0)
+        }
 
-          val (notNormalX, notNormalY) = notNormalizePoint
-          return notNormalX >= -1 && notNormalX <= 1 && notNormalY >= -1 && notNormalY <= 1*/
+        val (notNormalX, notNormalY) = notNormalizePoint
+        return notNormalX >= -1 && notNormalX <= 1 && notNormalY >= -1 && notNormalY <= 1
     }
 
     override fun onTouchMove(x: Float, y: Float, deltaX: Float, deltaY: Float) {
