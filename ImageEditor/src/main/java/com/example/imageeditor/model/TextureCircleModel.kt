@@ -42,8 +42,8 @@ internal class TextureCircleModel(
             val radian = (i.toFloat() / pointSize.toFloat()) * (2 * Math.PI)
             // 해당 라디안의 점 구해서 넣기
             floatArray.add(centerX + (radius * Math.cos(radian).toFloat())) // x
-            floatArray.add(centerY) // y
-            floatArray.add(centerZ + (radius * Math.sin(radian).toFloat()))
+            floatArray.add(centerY + (radius * Math.sin(radian).toFloat())) // y
+            floatArray.add(centerZ)
         }
         floatArray.toBuffer()
     }
@@ -82,9 +82,8 @@ internal class TextureCircleModel(
         program.updateUniformMatrix4f("u_Trans", transBuffer)
         program.updateUniformMatrix4f("u_Rotate", rotateBuffer)
         program.updateUniformMatrix4f("u_Scale", scaleBuffer)
-
-        drawTexture()
         drawCircle()
+        drawTexture()
 
         program.unbind()
         texture.unbind()
