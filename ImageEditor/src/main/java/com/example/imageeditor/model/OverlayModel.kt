@@ -20,16 +20,12 @@ import java.nio.FloatBuffer
 internal class OverlayModel(
     context: Context,
     private val contentsModel: GLESModel
-) : GLESModel {
-
-    private var _combinedM: FloatBuffer = createIdentity4Matrix().asBuffer()
-    override val combinedM: FloatBuffer
-        get() = kotlin.run {
-            val combined = _combinedM.toFloatArray()
-            createIdentity4Matrix().apply {
-                Matrix.multiplyMM(this, 0, combined, 0, scaleMatrix.array(), 0)
-            }.toBuffer()
-        }
+) : GLESModel(
+    scaleM = contentsModel.scaleM,
+    transM = contentsModel.transM,
+    rotateM = contentsModel.rotateM,
+    combinedM = contentsModel.combinedM
+) {
 
     private val scaleMatrix = createIdentity4Matrix().apply {
         Matrix.scaleM(this, 0, 1.1f, 1.1f, 1.1f)
@@ -69,8 +65,6 @@ internal class OverlayModel(
 
     override fun init(width: Int, height: Int) {
         contentsModel.init(width, height)
-        val otherMatrix = contentsModel.combinedM.toFloatArray()
-        _combinedM = otherMatrix.asBuffer()
     }
 
     override fun draw() {
@@ -78,7 +72,7 @@ internal class OverlayModel(
         if (!isVisible) return
         program.bind()
 
-        program.updateUniformMatrix4f("u_Model", _combinedM)
+        program.updateUniformMatrix4f("u_Model", combineBuffer)
         program.updateUniformMatrix4f("extra_u_Model", scaleMatrix)
 
         val vertexPointer = runGL { program.getAttributePointer("v_Position") }
@@ -107,7 +101,7 @@ internal class OverlayModel(
 
     private fun isTouched(x: Float, y: Float): Boolean {
         val inverseCombinedM = createIdentity4Matrix()
-        Matrix.invertM(inverseCombinedM, 0, _combinedM.array(), 0)
+        Matrix.invertM(inverseCombinedM, 0, combinedM, 0)
         val point = floatArrayOf(x, y, 0f, 1f)
         val notNormalizePoint = floatArrayOf(0f, 0f, 0f, 0f)
         Matrix.multiplyMV(notNormalizePoint, 0, inverseCombinedM, 0, point, 0)
@@ -120,7 +114,7 @@ internal class OverlayModel(
         if (!isPressed) return
         contentsModel.onTouchMove(x, y, deltaX, deltaY)
 
-        Matrix.translateM(_combinedM.array(), 0, deltaX, deltaY, 0f)
+        updateTranslation(deltaX, deltaY, 0f)
     }
 
     override fun onTouchUp() {

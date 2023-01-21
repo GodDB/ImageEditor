@@ -76,7 +76,7 @@ internal class ImageEditorRenderer(private val context: Context) : GLESRenderer(
         for (model in models) {
             val deltaX = (pressedPoint?.x ?: 0f) - normalizeX
             val deltaY = (pressedPoint?.y ?: 0f) - normalizeY
-            model.onTouchMove(normalizeX, normalizeY, deltaX, deltaY * 3)
+            model.onTouchMove(normalizeX, normalizeY, deltaX, deltaY * (1 + glViewHeight / glViewWidth))
         }
         pressedPoint?.x = normalizeX
         pressedPoint?.y = normalizeY

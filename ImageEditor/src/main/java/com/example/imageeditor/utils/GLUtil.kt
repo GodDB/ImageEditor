@@ -44,17 +44,17 @@ fun FloatArray.toBuffer(): FloatBuffer {
         }
 }
 
-fun FloatBuffer.deepCopy() : FloatBuffer {
+fun FloatBuffer.deepCopy(): FloatBuffer {
     return this.toFloatArray().toBuffer()
 }
 
-fun FloatArray.asBuffer() : FloatBuffer {
+fun FloatArray.asBuffer(): FloatBuffer {
     return FloatBuffer.wrap(this).apply {
         position(0)
     }
 }
 
-fun IntArray.asBuffer() : IntBuffer {
+fun IntArray.asBuffer(): IntBuffer {
     return IntBuffer.wrap(this).apply {
         position(0)
     }
@@ -102,16 +102,16 @@ fun IntBuffer.toIntArray(): IntArray {
     return newArray
 }
 
-fun FloatBuffer.asFloatArray() : FloatArray {
-    return if(this.hasArray()) {
+fun FloatBuffer.asFloatArray(): FloatArray {
+    return if (this.hasArray()) {
         this.array()
     } else {
         this.toFloatArray()
     }
 }
 
-fun IntBuffer.asIntArray() : IntArray {
-    return if(this.hasArray()) {
+fun IntBuffer.asIntArray(): IntArray {
+    return if (this.hasArray()) {
         this.array()
     } else {
         this.toIntArray()
@@ -122,6 +122,20 @@ fun createIdentity4Matrix(): FloatArray {
     return FloatArray(16).apply {
         Matrix.setIdentityM(this, 0)
     }
+}
+
+val readOnlyIdentity4Matrix = createIdentity4Matrix()
+
+fun FloatArray.isIdentityM(): Boolean {
+    return this.contentEquals(readOnlyIdentity4Matrix)
+}
+
+fun FloatArray.deepCopy(): FloatArray {
+    val result = FloatArray(this.size)
+    this.forEachIndexed { index, value ->
+        result[index] = value
+    }
+    return result
 }
 
 inline fun <T> runGL(block: () -> T): T {

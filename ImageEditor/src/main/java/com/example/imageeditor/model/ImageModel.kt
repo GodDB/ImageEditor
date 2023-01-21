@@ -10,23 +10,28 @@ import com.example.imageeditor.core.shader.ShaderProgram
 import com.example.imageeditor.core.texture.Texture
 import com.example.imageeditor.utils.FLOAT_BYTE_SIZE
 import com.example.imageeditor.utils.FileReader
+import com.example.imageeditor.utils.Vector3D
 import com.example.imageeditor.utils.asBuffer
 import com.example.imageeditor.utils.createIdentity4Matrix
 import com.example.imageeditor.utils.floatBufferOf
 import com.example.imageeditor.utils.intBufferOf
 import com.example.imageeditor.utils.runGL
-import java.nio.FloatBuffer
 
 internal class ImageModel(
     bitmap: Bitmap,
     context: Context,
-) : GLESModel {
+    inputScaleM: FloatArray = createIdentity4Matrix(),
+    inputTransM: FloatArray = createIdentity4Matrix(),
+    inputRotateM: FloatArray = createIdentity4Matrix(),
+    inputCombineM: FloatArray = createIdentity4Matrix()
+) : GLESModel(
+    scaleM = inputScaleM,
+    transM = inputTransM,
+    rotateM = inputRotateM,
+    combinedM = inputCombineM
+) {
 
-    private var _combinedM: FloatBuffer = createIdentity4Matrix().asBuffer()
-    override val combinedM: FloatBuffer
-        get() = _combinedM
-
-    private var isPressed : Boolean = false
+    private var isPressed: Boolean = false
 
     private val vertices = floatBufferOf(
         // x, y, z, texture_x, texture_y
@@ -54,7 +59,7 @@ internal class ImageModel(
         }
     }
 
-    private var _isVisible : Boolean = true
+    private var _isVisible: Boolean = true
     override val isVisible: Boolean
         get() = _isVisible
 
@@ -64,14 +69,12 @@ internal class ImageModel(
 
     override fun init(width: Int, height: Int) {
         // 텍스처는 기본적으로 gl과 상하반전이 있기 때문에 z축 180도 회전한다.
-        val scaleM = getTextureScaleMatrix(width, height, texture.width, texture.height)
-        val rotateM = getTextureRotateMatrix()
-        val matrix = createIdentity4Matrix()
-        Matrix.multiplyMM(matrix, 0, scaleM, 0, rotateM, 0)
-        _combinedM = matrix.asBuffer()
+        val scaleVector = getTextureScaleVector(width, height, texture.width, texture.height)
+        updateScale(scaleVector.x, scaleVector.y, scaleVector.z)
+        updateRotation(180f, 0f, 0f, 1f)
     }
 
-    private fun getTextureScaleMatrix(deviceWidth: Int, deviceHeight: Int, textureWidth: Int, textureHeight: Int): FloatArray {
+    private fun getTextureScaleVector(deviceWidth: Int, deviceHeight: Int, textureWidth: Int, textureHeight: Int): Vector3D {
         val scaleX = if (deviceWidth > textureWidth) {
             textureWidth.toFloat() / deviceWidth
         } else {
@@ -83,22 +86,14 @@ internal class ImageModel(
         } else {
             1f
         }
-        val scaleM = createIdentity4Matrix()
-        Matrix.scaleM(scaleM, 0, scaleX, scaleY, 1f)
-        return scaleM
-    }
-
-    private fun getTextureRotateMatrix(): FloatArray {
-        val matrix = createIdentity4Matrix()
-        Matrix.rotateM(matrix, 0, 180f, 0f, 0f, 1f)
-        return matrix
+        return Vector3D(scaleX, scaleY, 1f)
     }
 
     override fun draw() {
-        if(!isVisible) return
+        if (!isVisible) return
         program.bind()
         texture.bind()
-        program.updateUniformMatrix4f("u_Model", _combinedM)
+        program.updateUniformMatrix4f("u_Model", combineBuffer)
         drawVertices(program)
         drawTexture(program)
         runGL { GLES20.glDrawElements(GLES20.GL_TRIANGLES, vertexIndices.capacity(), GLES20.GL_UNSIGNED_INT, vertexIndices) }
@@ -134,14 +129,14 @@ internal class ImageModel(
         return isPressed
     }
 
-    override fun onTouchMove(x: Float, y: Float, deltaX : Float , deltaY : Float) {
-        if(!isPressed) return
+    override fun onTouchMove(x: Float, y: Float, deltaX: Float, deltaY: Float) {
+        if (!isPressed) return
 
-        Matrix.translateM(_combinedM.array(), 0, deltaX, deltaY, 0f)
+        updateTranslation(deltaX, deltaY, 0f)
     }
 
     override fun onTouchUp() {
-        if(!isPressed) return
+        if (!isPressed) return
 
         isPressed = false
     }
