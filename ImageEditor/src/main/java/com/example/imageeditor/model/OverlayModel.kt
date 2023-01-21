@@ -13,9 +13,6 @@ import com.example.imageeditor.utils.createIdentity4Matrix
 import com.example.imageeditor.utils.floatBufferOf
 import com.example.imageeditor.utils.intBufferOf
 import com.example.imageeditor.utils.runGL
-import com.example.imageeditor.utils.toBuffer
-import com.example.imageeditor.utils.toFloatArray
-import java.nio.FloatBuffer
 
 internal class OverlayModel(
     context: Context,
@@ -26,17 +23,13 @@ internal class OverlayModel(
     rotateM = contentsModel.rotateM,
     combinedM = contentsModel.combinedM
 ) {
-
-    private val scaleMatrix = createIdentity4Matrix().apply {
-        Matrix.scaleM(this, 0, 1.1f, 1.1f, 1.1f)
-    }.asBuffer()
-
+    
     private val vertices = floatBufferOf(
         // x, y, z
-        -1f, 1f, 0.0f, // top left
-        -1f, -1f, 0.0f, // bottom left
-        1f, 1f, 0.0f, // top right
-        1f, -1f, 0.0f,  // bottom right
+        -1.1f, 1.2f, 0.0f, // top left
+        -1.1f, -1.2f, 0.0f, // bottom left
+        1.1f, 1.2f, 0.0f, // top right
+        1.1f, -1.2f, 0.0f,  // bottom right
     )
 
     private val vertexIndices = intBufferOf(
@@ -73,7 +66,6 @@ internal class OverlayModel(
         program.bind()
 
         program.updateUniformMatrix4f("u_Model", combineBuffer)
-        program.updateUniformMatrix4f("extra_u_Model", scaleMatrix)
 
         val vertexPointer = runGL { program.getAttributePointer("v_Position") }
 
