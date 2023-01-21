@@ -1,8 +1,6 @@
 package com.example.imageeditor
 
-import com.example.imageeditor.R
 import android.os.Bundle
-import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {

@@ -2,6 +2,8 @@ package com.example.imageeditor.model
 
 import android.opengl.Matrix
 import com.example.imageeditor.core.shader.ShaderProgram
+import com.example.imageeditor.utils.Size
+import com.example.imageeditor.utils.Vector3D
 import com.example.imageeditor.utils.asBuffer
 import com.example.imageeditor.utils.createIdentity4Matrix
 import com.example.imageeditor.utils.deepCopy
@@ -14,11 +16,24 @@ internal abstract class GLESModel(
     protected val scaleBuffer = scaleM.asBuffer()
     protected val transBuffer = transM.asBuffer()
     protected val rotateBuffer = rotateM.asBuffer()
+    protected val combinedMatrix: FloatArray
+        get() = createIdentity4Matrix().apply {
+            Matrix.multiplyMM(this, 0, transM, 0, this, 0)
+            Matrix.multiplyMM(this, 0, scaleM, 0, this, 0)
+            Matrix.multiplyMM(this, 0, rotateM, 0, this, 0)
+        }
+
+    open val size: Size
+        get() = throw UnsupportedOperationException("not supported")
+
+    open val center: Vector3D
+        get() = throw UnsupportedOperationException("not supported")
 
     abstract val program: ShaderProgram
     private var _isVisible: Boolean = true
     val isVisible: Boolean
         get() = _isVisible
+
 
     abstract fun init(width: Int, height: Int)
 

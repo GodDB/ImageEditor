@@ -10,7 +10,10 @@ void main()
 {
 
    if(u_IsTexture == 0) {
-       gl_FragColor = texture2D(u_TextureUnit, f_Texture_Position);
+       vec4 texColor = texture2D(u_TextureUnit, f_Texture_Position);
+       // 알파가 0.1보다 작다면 버린다.
+       if(texColor.a < 0.1) discard;
+       gl_FragColor = texColor;
     } else {
        gl_FragColor = vec4(1f, 0f, 0f, 1f);
    }

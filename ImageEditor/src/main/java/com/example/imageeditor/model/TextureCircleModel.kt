@@ -2,6 +2,7 @@ package com.example.imageeditor.model
 
 import android.content.Context
 import android.opengl.GLES20
+import android.opengl.Matrix
 import androidx.annotation.DrawableRes
 import com.example.imageeditor.R
 import com.example.imageeditor.core.shader.Shader
@@ -10,7 +11,7 @@ import com.example.imageeditor.core.texture.Texture
 import com.example.imageeditor.utils.BitmapUtil
 import com.example.imageeditor.utils.FLOAT_BYTE_SIZE
 import com.example.imageeditor.utils.FileReader
-import com.example.imageeditor.utils.floatBufferOf
+import com.example.imageeditor.utils.createIdentity4Matrix
 import com.example.imageeditor.utils.intBufferOf
 import com.example.imageeditor.utils.runGL
 import com.example.imageeditor.utils.toBuffer
@@ -21,8 +22,9 @@ internal class TextureCircleModel(
     centerX: Float,
     centerY: Float,
     centerZ: Float,
-    radius: Float
+    private val radius: Float
 ) : GLESModel() {
+
     override val program: ShaderProgram by lazy {
         runGL {
             val vertexShaderSourceCode = FileReader.readFile(context, R.raw.texture_circle_vertex_shader)
@@ -38,6 +40,7 @@ internal class TextureCircleModel(
 
     private val circleVertices = kotlin.run {
         val floatArray = mutableListOf<Float>(centerX, centerY, centerZ)
+        // x, y, z, texture_x, texture_y
         for (i in 0..pointSize) {
             val radian = (i.toFloat() / pointSize.toFloat()) * (2 * Math.PI)
             // 해당 라디안의 점 구해서 넣기
@@ -52,14 +55,14 @@ internal class TextureCircleModel(
         (0..pointSize + 1).toList().toBuffer()
     }
 
-    private val textureVertices = floatBufferOf(
+    private val textureVertices = floatArrayOf(
         // x, y, z, texture_x, texture_y
-        -1f * radius, 1f * radius, 0.0f, 0.0f, 1.0f, // top left
-        -1f * radius, -1f * radius, 0.0f, 0.0f, 0.0f, // bottom left
-        1f * radius, 1f * radius, 0.0f, 1.0f, 1.0f, // top right
-        1f * radius, -1f * radius, 0.0f, 1.0f, 0.0f,  // bottom right
-        0f, 0f, 0f, 0.5f, 0.5f
-    )
+        centerX - radius / 2, centerY + radius / 2, 0.0f, 0.0f, 1.0f, // top left
+        centerX - radius / 2, centerY - radius / 2, 0.0f, 0.0f, 0.0f, // bottom left
+        centerX + radius / 2, centerY + radius / 2, 0.0f, 1.0f, 1.0f, // top right
+        centerX + radius / 2, centerY - radius / 2, 0.0f, 1.0f, 0.0f,  // bottom right
+        centerX + 0f, centerY + 0f, 0f, 0.5f, 0.5f
+    ).toBuffer()
 
     private val textureVertexIndices = intBufferOf(
         1, 2, 0,
@@ -73,20 +76,23 @@ internal class TextureCircleModel(
 
 
     override fun init(width: Int, height: Int) {
+        updateRotation(180f, 0f, 0f, 1f)
         updateScale(1f, width / height.toFloat(), 1f)
     }
 
     override fun draw() {
         program.bind()
         texture.bind()
+
         program.updateUniformMatrix4f("u_Trans", transBuffer)
         program.updateUniformMatrix4f("u_Rotate", rotateBuffer)
         program.updateUniformMatrix4f("u_Scale", scaleBuffer)
-        drawCircle()
-        drawTexture()
 
-        program.unbind()
+        drawTexture()
+        drawCircle()
+
         texture.unbind()
+        program.unbind()
     }
 
     private fun drawTexture() {
@@ -116,6 +122,7 @@ internal class TextureCircleModel(
         circleVertices.position(0)
         runGL { GLES20.glVertexAttribPointer(vertexPointer, 3, GLES20.GL_FLOAT, false, 3 * FLOAT_BYTE_SIZE, circleVertices) } // vertex정보들을 vertexArray에게 전달한다.
         runGL { GLES20.glEnableVertexAttribArray(vertexPointer) } // vertexArray를 활성화 한다.
+
         runGL { GLES20.glDrawElements(GLES20.GL_TRIANGLE_FAN, circleVertexIndices.capacity(), GLES20.GL_UNSIGNED_INT, circleVertexIndices) }
         runGL { GLES20.glEnableVertexAttribArray(0) } // vertexArray를 비활성화 한다.
     }

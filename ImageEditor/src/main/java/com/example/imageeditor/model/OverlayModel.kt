@@ -3,11 +3,14 @@ package com.example.imageeditor.model
 import android.content.Context
 import android.opengl.GLES20
 import android.opengl.Matrix
+import android.util.Log
 import com.example.imageeditor.R
 import com.example.imageeditor.core.shader.Shader
 import com.example.imageeditor.core.shader.ShaderProgram
 import com.example.imageeditor.utils.FLOAT_BYTE_SIZE
 import com.example.imageeditor.utils.FileReader
+import com.example.imageeditor.utils.Size
+import com.example.imageeditor.utils.Vector3D
 import com.example.imageeditor.utils.createIdentity4Matrix
 import com.example.imageeditor.utils.deepCopy
 import com.example.imageeditor.utils.floatBufferOf
@@ -19,13 +22,60 @@ internal class OverlayModel(
     private val contentsModel: GLESModel
 ) : GLESModel() {
 
+    private val topLeftVector3D = Vector3D(-1f, 1f, 0f)
+    private val topRightVector3D = Vector3D(1f, 1f, 0f)
+    private val bottomLeftVector3D = Vector3D(-1f, -1f, 0f)
+    private val bottomRightVector3D = Vector3D(1f, -1f, 0f)
+
     private val vertices = floatBufferOf(
         // x, y, z
-        -1f, 1f, 0.0f, // top left
-        -1f, -1f, 0.0f, // bottom left
-        1f, 1f, 0.0f, // top right
-        1f, -1f, 0.0f,  // bottom right
+        topLeftVector3D.x, topLeftVector3D.y, topLeftVector3D.z, // top left
+        bottomLeftVector3D.x, bottomLeftVector3D.y, bottomLeftVector3D.z, // bottom left
+        topRightVector3D.x, topRightVector3D.y, topRightVector3D.z, // top right
+        bottomRightVector3D.x, bottomRightVector3D.y, bottomRightVector3D.z,  // bottom right
     )
+
+    override val size: Size
+        get() = kotlin.run {
+            val localCombinedMatrix = combinedMatrix
+            val leftTop = createIdentity4Matrix().apply {
+                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, topLeftVector3D.array, 0)
+            }
+            val leftBottom = createIdentity4Matrix().apply {
+                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, bottomLeftVector3D.array, 0)
+            }
+            val rightTop = createIdentity4Matrix().apply {
+                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, topRightVector3D.array, 0)
+            }
+            Size(
+                width = (rightTop[0] + 1) - (leftTop[0] + 1),
+                height = (leftTop[1] + 1) - (leftBottom[1] + 1)
+            )
+        }
+
+    override val center: Vector3D
+        get() = kotlin.run {
+            val localCombinedMatrix = combinedMatrix
+            val leftTop = createIdentity4Matrix().apply {
+                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, topLeftVector3D.array, 0)
+            }
+            val leftBottom = createIdentity4Matrix().apply {
+                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, bottomLeftVector3D.array, 0)
+            }
+            val rightTop = createIdentity4Matrix().apply {
+                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, topRightVector3D.array, 0)
+            }
+            val rightBottom = createIdentity4Matrix().apply {
+                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, bottomRightVector3D.array, 0)
+            }
+
+            Vector3D(
+                x = (leftTop[0] + rightTop[0]) / 2,
+                y = (leftTop[1] + leftBottom[1]) / 2,
+                z = leftTop[2]
+            )
+        }
+
 
     private val vertexIndices = intBufferOf(
         0, 2,
@@ -45,29 +95,52 @@ internal class OverlayModel(
         }
     }
 
-    private val leftTopCircle = TextureCircleModel(
-        context = context,
-        imgRes = com.google.android.material.R.drawable.ic_clock_black_24dp,
-        centerX = 0f,
-        centerY = 0f,
-        centerZ = 0f,
-        radius = 0.5f
-    )
+    private val circleArray by lazy {
+        val center = this.center
+        val size = this.size
+        listOf(
+            TextureCircleModel(
+                context = context,
+                imgRes = com.google.android.material.R.drawable.ic_clock_black_24dp,
+                centerX = center.x - (size.width/2),
+                centerY = (size.height) - center.y,
+                centerZ = 0f,
+                radius = 0.1f
+            ),
+            TextureCircleModel(
+                context = context,
+                imgRes = com.google.android.material.R.drawable.ic_clock_black_24dp,
+                centerX = center.x + (size.width/2),
+                centerY = (size.height) - center.y,
+                centerZ = 0f,
+                radius = 0.1f
+            ),
+            TextureCircleModel(
+                context = context,
+                imgRes = com.google.android.material.R.drawable.ic_clock_black_24dp,
+                centerX = center.x + (size.width/2),
+                centerY = center.y - (size.height) ,
+                centerZ = 0f,
+                radius = 0.1f
+            )
+        )
+    }
 
     private var isPressed: Boolean = false
 
     override fun init(width: Int, height: Int) {
         contentsModel.init(width, height)
-        leftTopCircle.init(width, height)
         updateTranslation(contentsModel.transM.deepCopy())
         updateRotation(contentsModel.rotateM.deepCopy())
         updateScale(contentsModel.scaleM.deepCopy())
         updateScale(1.1f, 1.2f, 1f)
+        circleArray.forEach {
+            it.init(width, height)
+        }
     }
 
     override fun draw() {
         contentsModel.draw()
-        leftTopCircle.draw()
         if (!isVisible) return
         program.bind()
 
@@ -84,6 +157,9 @@ internal class OverlayModel(
         runGL { GLES20.glEnableVertexAttribArray(0) } // vertexArray를 비활성화 한다.
 
         program.unbind()
+        circleArray.forEach {
+            it.draw()
+        }
     }
 
     override fun onTouchDown(x: Float, y: Float): Boolean {
@@ -113,6 +189,9 @@ internal class OverlayModel(
         if (!isPressed) return
         contentsModel.updateTranslation(-deltaX, -deltaY, 0f)
         updateTranslation(-deltaX, -deltaY, 0f)
+        circleArray.forEach {
+            it.updateTranslation(-deltaX, -deltaY, 0f)
+        }
     }
 
     override fun onTouchUp() {

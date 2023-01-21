@@ -10,12 +10,13 @@ import com.example.imageeditor.core.shader.ShaderProgram
 import com.example.imageeditor.core.texture.Texture
 import com.example.imageeditor.utils.FLOAT_BYTE_SIZE
 import com.example.imageeditor.utils.FileReader
+import com.example.imageeditor.utils.Size
 import com.example.imageeditor.utils.Vector3D
-import com.example.imageeditor.utils.asBuffer
 import com.example.imageeditor.utils.createIdentity4Matrix
 import com.example.imageeditor.utils.floatBufferOf
 import com.example.imageeditor.utils.intBufferOf
 import com.example.imageeditor.utils.runGL
+import kotlin.math.abs
 
 internal class ImageModel(
     bitmap: Bitmap,
@@ -28,13 +29,17 @@ internal class ImageModel(
     transM = inputTransM,
     rotateM = inputRotateM
 ) {
+    private val topLeftVector3D = Vector3D(-1f, 1f, 0f)
+    private val topRightVector3D = Vector3D(1f, 1f, 0f)
+    private val bottomLeftVector3D = Vector3D(-1f, -1f, 0f)
+    private val bottomRightVector3D = Vector3D(1f, -1f, 0f)
 
     private val vertices = floatBufferOf(
         // x, y, z, texture_x, texture_y
-        -1f, 1f, 0.0f, 0.0f, 1.0f, // top left
-        -1f, -1f, 0.0f, 0.0f, 0.0f, // bottom left
-        1f, 1f, 0.0f, 1.0f, 1.0f, // top right
-        1f, -1f, 0.0f, 1.0f, 0.0f,  // bottom right
+        topLeftVector3D.x, topLeftVector3D.y, topLeftVector3D.z, 0.0f, 1.0f, // top left
+        bottomLeftVector3D.x, bottomLeftVector3D.y, topLeftVector3D.z, 0.0f, 0.0f, // bottom left
+        topRightVector3D.x, topRightVector3D.y, topRightVector3D.z, 1.0f, 1.0f, // top right
+        bottomRightVector3D.x, bottomRightVector3D.y, bottomRightVector3D.z, 1.0f, 0.0f,  // bottom right
         0f, 0f, 0f, 0.5f, 0.5f
     )
 
@@ -43,6 +48,47 @@ internal class ImageModel(
         2, 0, 3,
         1, 3, 4
     )
+
+    override val size: Size
+        get() = kotlin.run {
+            val localCombinedMatrix = combinedMatrix
+            val leftTop = createIdentity4Matrix().apply {
+                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, topLeftVector3D.array, 0)
+            }
+            val leftBottom = createIdentity4Matrix().apply {
+                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, bottomLeftVector3D.array, 0)
+            }
+            val rightTop = createIdentity4Matrix().apply {
+                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, topRightVector3D.array, 0)
+            }
+            Size(
+                width = (rightTop[0] + 1) - (leftTop[0] + 1),
+                height = (leftTop[1] + 1) - (leftBottom[1] + 1)
+            )
+        }
+
+    override val center: Vector3D
+        get() = kotlin.run {
+            val localCombinedMatrix = combinedMatrix
+            val leftTop = createIdentity4Matrix().apply {
+                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, topLeftVector3D.array, 0)
+            }
+            val leftBottom = createIdentity4Matrix().apply {
+                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, bottomLeftVector3D.array, 0)
+            }
+            val rightTop = createIdentity4Matrix().apply {
+                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, topRightVector3D.array, 0)
+            }
+            val rightBottom = createIdentity4Matrix().apply {
+                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, bottomRightVector3D.array, 0)
+            }
+
+            Vector3D(
+                x = (leftTop[0] + rightTop[0]) / 2,
+                y = (leftTop[1] + leftBottom[1]) / 2,
+                z = leftTop[2]
+            )
+        }
 
     override val program by lazy {
         runGL {

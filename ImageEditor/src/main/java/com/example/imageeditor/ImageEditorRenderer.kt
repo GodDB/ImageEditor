@@ -31,8 +31,9 @@ internal class ImageEditorRenderer(private val context: Context) : GLESRenderer(
         glViewWidth = width
         glViewHeight = height
         runGL { GLES20.glViewport(0, 0, width, height) }
-      //  runGL { GLES20.glEnable(GLES20.GL_CULL_FACE) } // 벡터 외적이 후면을 바라보는 부분 제거
+        //  runGL { GLES20.glEnable(GLES20.GL_CULL_FACE) } // 벡터 외적이 후면을 바라보는 부분 제거
         runGL { GLES20.glEnable(GLES20.GL_DEPTH_TEST) } // z버퍼 생성
+        runGL { GLES20.glEnable(GLES20.GL_BLEND) } // 알파 채널 적용
 
         models.forEach {
             it.init(glViewWidth, glViewHeight)
