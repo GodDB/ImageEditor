@@ -5,15 +5,15 @@ import com.example.imageeditor.core.shader.ShaderProgram
 import com.example.imageeditor.utils.asBuffer
 import com.example.imageeditor.utils.createIdentity4Matrix
 import com.example.imageeditor.utils.deepCopy
-import java.nio.FloatBuffer
 
 internal abstract class GLESModel(
     val scaleM: FloatArray = createIdentity4Matrix(),
     val transM: FloatArray = createIdentity4Matrix(),
-    val rotateM: FloatArray = createIdentity4Matrix(),
-    val combinedM: FloatArray = createIdentity4Matrix()
+    val rotateM: FloatArray = createIdentity4Matrix()
 ) {
-    val combineBuffer: FloatBuffer = combinedM.asBuffer()
+    protected val scaleBuffer = scaleM.asBuffer()
+    protected val transBuffer = transM.asBuffer()
+    protected val rotateBuffer = rotateM.asBuffer()
 
     abstract val program: ShaderProgram
     abstract val isVisible: Boolean
@@ -36,35 +36,27 @@ internal abstract class GLESModel(
 
     }
 
-    protected fun updateTranslation(x: Float, y: Float, z: Float) {
+    fun updateTranslation(newTransM : FloatArray) {
+        Matrix.multiplyMM(transM, 0, transM, 0, newTransM, 0)
+    }
+
+    fun updateRotation(newRotateM : FloatArray) {
+        Matrix.multiplyMM(rotateM, 0, rotateM, 0, newRotateM, 0)
+    }
+
+    fun updateScale(newScaleM : FloatArray) {
+        Matrix.multiplyMM(scaleM, 0, scaleM, 0, newScaleM, 0)
+    }
+
+    fun updateTranslation(x: Float, y: Float, z: Float) {
         Matrix.translateM(transM, 0, x, y, z)
-        Matrix.translateM(combinedM, 0, x, y, z)
     }
 
-    protected fun updateRotation(angle: Float, weightX: Float, weightY: Float, weightZ: Float) {
+    fun updateRotation(angle: Float, weightX: Float, weightY: Float, weightZ: Float) {
         Matrix.rotateM(rotateM, 0, angle, weightX, weightY, weightZ)
-        Matrix.rotateM(combinedM, 0, angle, weightX, weightY, weightZ)
     }
 
-    protected fun updateScale(scaleX: Float, scaleY: Float, scaleZ: Float) {
+    fun updateScale(scaleX: Float, scaleY: Float, scaleZ: Float) {
         Matrix.scaleM(scaleM, 0, scaleX, scaleY, scaleZ)
-        Matrix.scaleM(combinedM, 0, scaleX, scaleY, scaleZ)
     }
-
-    fun getDeepCopiedScaleM(): FloatArray {
-        return scaleM.deepCopy()
-    }
-
-    fun getDeepCopiedTransM(): FloatArray {
-        return transM.deepCopy()
-    }
-
-    fun getDeepCopiedRotateM(): FloatArray {
-        return rotateM.deepCopy()
-    }
-
-    fun getDeepCopiedCombinedM(): FloatArray {
-        return combinedM.deepCopy()
-    }
-
 }

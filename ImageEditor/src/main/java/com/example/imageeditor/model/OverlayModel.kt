@@ -2,14 +2,12 @@ package com.example.imageeditor.model
 
 import android.content.Context
 import android.opengl.GLES20
-import android.opengl.Matrix
 import com.example.imageeditor.R
 import com.example.imageeditor.core.shader.Shader
 import com.example.imageeditor.core.shader.ShaderProgram
 import com.example.imageeditor.utils.FLOAT_BYTE_SIZE
 import com.example.imageeditor.utils.FileReader
-import com.example.imageeditor.utils.asBuffer
-import com.example.imageeditor.utils.createIdentity4Matrix
+import com.example.imageeditor.utils.deepCopy
 import com.example.imageeditor.utils.floatBufferOf
 import com.example.imageeditor.utils.intBufferOf
 import com.example.imageeditor.utils.runGL
@@ -17,19 +15,14 @@ import com.example.imageeditor.utils.runGL
 internal class OverlayModel(
     context: Context,
     private val contentsModel: GLESModel
-) : GLESModel(
-    scaleM = contentsModel.scaleM,
-    transM = contentsModel.transM,
-    rotateM = contentsModel.rotateM,
-    combinedM = contentsModel.combinedM
-) {
-    
+) : GLESModel() {
+
     private val vertices = floatBufferOf(
         // x, y, z
-        -1.1f, 1.2f, 0.0f, // top left
-        -1.1f, -1.2f, 0.0f, // bottom left
-        1.1f, 1.2f, 0.0f, // top right
-        1.1f, -1.2f, 0.0f,  // bottom right
+        -1f, 1f, 0.0f, // top left
+        -1f, -1f, 0.0f, // bottom left
+        1f, 1f, 0.0f, // top right
+        1f, -1f, 0.0f,  // bottom right
     )
 
     private val vertexIndices = intBufferOf(
@@ -58,6 +51,10 @@ internal class OverlayModel(
 
     override fun init(width: Int, height: Int) {
         contentsModel.init(width, height)
+        updateTranslation(contentsModel.transM.deepCopy())
+        updateRotation(contentsModel.rotateM.deepCopy())
+        updateScale(contentsModel.scaleM.deepCopy())
+        updateScale(1.1f, 1.2f, 1f)
     }
 
     override fun draw() {
@@ -65,7 +62,9 @@ internal class OverlayModel(
         if (!isVisible) return
         program.bind()
 
-        program.updateUniformMatrix4f("u_Model", combineBuffer)
+        program.updateUniformMatrix4f("u_Trans", transBuffer)
+        program.updateUniformMatrix4f("u_Rotate", rotateBuffer)
+        program.updateUniformMatrix4f("u_Scale", scaleBuffer)
 
         val vertexPointer = runGL { program.getAttributePointer("v_Position") }
 
@@ -92,21 +91,21 @@ internal class OverlayModel(
     }
 
     private fun isTouched(x: Float, y: Float): Boolean {
-        val inverseCombinedM = createIdentity4Matrix()
-        Matrix.invertM(inverseCombinedM, 0, combinedM, 0)
-        val point = floatArrayOf(x, y, 0f, 1f)
-        val notNormalizePoint = floatArrayOf(0f, 0f, 0f, 0f)
-        Matrix.multiplyMV(notNormalizePoint, 0, inverseCombinedM, 0, point, 0)
+        return true
+        /*  val inverseCombinedM = createIdentity4Matrix()
+          Matrix.invertM(inverseCombinedM, 0, combinedM, 0)
+          val point = floatArrayOf(x, y, 0f, 1f)
+          val notNormalizePoint = floatArrayOf(0f, 0f, 0f, 0f)
+          Matrix.multiplyMV(notNormalizePoint, 0, inverseCombinedM, 0, point, 0)
 
-        val (notNormalX, notNormalY) = notNormalizePoint
-        return notNormalX >= -1 && notNormalX <= 1 && notNormalY >= -1 && notNormalY <= 1
+          val (notNormalX, notNormalY) = notNormalizePoint
+          return notNormalX >= -1 && notNormalX <= 1 && notNormalY >= -1 && notNormalY <= 1*/
     }
 
     override fun onTouchMove(x: Float, y: Float, deltaX: Float, deltaY: Float) {
         if (!isPressed) return
-        contentsModel.onTouchMove(x, y, deltaX, deltaY)
-
-        updateTranslation(deltaX, deltaY, 0f)
+        contentsModel.updateTranslation(-deltaX, -deltaY, 0f)
+        updateTranslation(-deltaX, -deltaY, 0f)
     }
 
     override fun onTouchUp() {

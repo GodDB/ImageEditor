@@ -22,16 +22,12 @@ internal class ImageModel(
     context: Context,
     inputScaleM: FloatArray = createIdentity4Matrix(),
     inputTransM: FloatArray = createIdentity4Matrix(),
-    inputRotateM: FloatArray = createIdentity4Matrix(),
-    inputCombineM: FloatArray = createIdentity4Matrix()
+    inputRotateM: FloatArray = createIdentity4Matrix()
 ) : GLESModel(
     scaleM = inputScaleM,
     transM = inputTransM,
-    rotateM = inputRotateM,
-    combinedM = inputCombineM
+    rotateM = inputRotateM
 ) {
-
-    private var isPressed: Boolean = false
 
     private val vertices = floatBufferOf(
         // x, y, z, texture_x, texture_y
@@ -93,7 +89,9 @@ internal class ImageModel(
         if (!isVisible) return
         program.bind()
         texture.bind()
-        program.updateUniformMatrix4f("u_Model", combineBuffer)
+        program.updateUniformMatrix4f("u_Trans", transBuffer)
+        program.updateUniformMatrix4f("u_Rotate", rotateBuffer)
+        program.updateUniformMatrix4f("u_Scale", scaleBuffer)
         drawVertices(program)
         drawTexture(program)
         runGL { GLES20.glDrawElements(GLES20.GL_TRIANGLES, vertexIndices.capacity(), GLES20.GL_UNSIGNED_INT, vertexIndices) }
@@ -121,23 +119,5 @@ internal class ImageModel(
 
     override fun setVisible(visible: Boolean) {
         _isVisible = visible
-    }
-
-    override fun onTouchDown(x: Float, y: Float): Boolean {
-        // is contains
-        isPressed = true
-        return isPressed
-    }
-
-    override fun onTouchMove(x: Float, y: Float, deltaX: Float, deltaY: Float) {
-        if (!isPressed) return
-
-        updateTranslation(deltaX, deltaY, 0f)
-    }
-
-    override fun onTouchUp() {
-        if (!isPressed) return
-
-        isPressed = false
     }
 }
