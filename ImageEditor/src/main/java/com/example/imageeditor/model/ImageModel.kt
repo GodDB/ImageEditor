@@ -51,7 +51,7 @@ internal class ImageModel(
 
     override val size: Size
         get() = kotlin.run {
-            val localCombinedMatrix = combinedMatrix
+            val localCombinedMatrix = getCombinedMatrix()
             val leftTop = createIdentity4Matrix().apply {
                 Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, topLeftVector3D.array, 0)
             }
@@ -69,7 +69,7 @@ internal class ImageModel(
 
     override val center: Vector3D
         get() = kotlin.run {
-            val localCombinedMatrix = combinedMatrix
+            val localCombinedMatrix = getCombinedMatrix()
             val leftTop = createIdentity4Matrix().apply {
                 Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, topLeftVector3D.array, 0)
             }
@@ -78,9 +78,6 @@ internal class ImageModel(
             }
             val rightTop = createIdentity4Matrix().apply {
                 Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, topRightVector3D.array, 0)
-            }
-            val rightBottom = createIdentity4Matrix().apply {
-                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, bottomRightVector3D.array, 0)
             }
 
             Vector3D(

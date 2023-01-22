@@ -6,8 +6,6 @@ import com.example.imageeditor.utils.Size
 import com.example.imageeditor.utils.Vector3D
 import com.example.imageeditor.utils.asBuffer
 import com.example.imageeditor.utils.createIdentity4Matrix
-import com.example.imageeditor.utils.deepCopy
-import com.example.imageeditor.utils.getTempIdentity4Matrix
 
 internal abstract class GLESModel(
     val scaleM: FloatArray = createIdentity4Matrix(),
@@ -17,13 +15,16 @@ internal abstract class GLESModel(
     protected val scaleBuffer = scaleM.asBuffer()
     protected val transBuffer = transM.asBuffer()
     protected val rotateBuffer = rotateM.asBuffer()
-    protected val combinedMatrix: FloatArray = createIdentity4Matrix()
-        get() {
-            Matrix.setIdentityM(field, 0)
-            Matrix.multiplyMM(field, 0, transM, 0, rotateM, 0)
-            Matrix.multiplyMM(field, 0, field, 0, scaleM, 0)
-            return field
+    private val combinedMatrix: FloatArray = createIdentity4Matrix()
+
+    protected fun getCombinedMatrix(): FloatArray {
+        return this.combinedMatrix.apply {
+            Matrix.setIdentityM(this, 0)
+            Matrix.multiplyMM(this, 0, this, 0, transM, 0)
+            Matrix.multiplyMM(this, 0, this, 0, rotateM, 0)
+            Matrix.multiplyMM(this, 0, this, 0, scaleM, 0)
         }
+    }
 
     open val size: Size
         get() = throw UnsupportedOperationException("not supported")

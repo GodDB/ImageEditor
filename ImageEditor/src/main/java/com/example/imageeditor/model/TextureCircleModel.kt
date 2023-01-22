@@ -13,8 +13,7 @@ import com.example.imageeditor.utils.FLOAT_BYTE_SIZE
 import com.example.imageeditor.utils.FileReader
 import com.example.imageeditor.utils.Vector3D
 import com.example.imageeditor.utils.createIdentity4Matrix
-import com.example.imageeditor.utils.getTempIdentity4Matrix
-import com.example.imageeditor.utils.getTempVector3DArray
+import com.example.imageeditor.utils.createVector4DArray
 import com.example.imageeditor.utils.intBufferOf
 import com.example.imageeditor.utils.runGL
 import com.example.imageeditor.utils.toBuffer
@@ -26,14 +25,14 @@ internal class TextureCircleModel(
     private val centerY: Float,
     private val centerZ: Float,
     private val radius: Float,
-    private val onDragEvent : (prevX : Float, prevY : Float, curX : Float, curY : Float) -> Unit = { _,_,_,_ -> }
+    private val onDragEvent: (prevX: Float, prevY: Float, curX: Float, curY: Float, deltaX: Float, deltaY: Float) -> Unit = { _, _, _, _, _, _ -> }
 ) : GLESModel() {
 
     override val center: Vector3D
         get() = kotlin.run {
-            val centerVector3D = getTempVector3DArray(centerX, centerY, centerZ)
-            val result = getTempIdentity4Matrix().apply {
-                Matrix.multiplyMV(this, 0, combinedMatrix, 0, centerVector3D, 0)
+            val centerVector3D = createVector4DArray(centerX, centerY, centerZ)
+            val result = createIdentity4Matrix().apply {
+                Matrix.multiplyMV(this, 0, getCombinedMatrix(), 0, centerVector3D, 0)
             }
             Vector3D(
                 x = result[0],
@@ -150,7 +149,10 @@ internal class TextureCircleModel(
     }
 
     override fun onTouchMove(x: Float, y: Float, deltaX: Float, deltaY: Float) {
-        if(!isPressed) return
+        if (!isPressed) return
+        val prevX = x - deltaX
+        val prevY = y - deltaY
+        onDragEvent.invoke(prevX, prevY, x, y, deltaX, deltaY)
     }
 
     override fun onTouchUp() {
@@ -159,9 +161,9 @@ internal class TextureCircleModel(
 
     private fun isTouched(x: Float, y: Float): Boolean {
         val inverseM = createIdentity4Matrix().apply {
-            Matrix.invertM(this, 0, combinedMatrix, 0)
+            Matrix.invertM(this, 0, getCombinedMatrix(), 0)
         }
-        val notnormalizePoint = getTempVector3DArray(x, y, 0f).apply {
+        val notnormalizePoint = createVector4DArray(x, y, 0f).apply {
             Matrix.multiplyMV(this, 0, inverseM, 0, this, 0)
         }
         val left = centerX - radius

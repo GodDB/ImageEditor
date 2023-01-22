@@ -12,10 +12,9 @@ import com.example.imageeditor.utils.FileReader
 import com.example.imageeditor.utils.Size
 import com.example.imageeditor.utils.Vector3D
 import com.example.imageeditor.utils.createIdentity4Matrix
+import com.example.imageeditor.utils.createVector4DArray
 import com.example.imageeditor.utils.deepCopy
 import com.example.imageeditor.utils.floatBufferOf
-import com.example.imageeditor.utils.getTempIdentity4Matrix
-import com.example.imageeditor.utils.getTempVector3DArray
 import com.example.imageeditor.utils.intBufferOf
 import com.example.imageeditor.utils.runGL
 
@@ -40,7 +39,7 @@ internal class OverlayModel(
 
     override val size: Size
         get() = kotlin.run {
-            val localCombinedMatrix = combinedMatrix
+            val localCombinedMatrix = getCombinedMatrix()
             val leftTop = createIdentity4Matrix().apply {
                 Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, topLeftVector3D.array, 0)
             }
@@ -58,7 +57,7 @@ internal class OverlayModel(
 
     override val center: Vector3D
         get() = kotlin.run {
-            val localCombinedMatrix = combinedMatrix
+            val localCombinedMatrix = getCombinedMatrix()
             val leftTop = createIdentity4Matrix().apply {
                 Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, topLeftVector3D.array, 0)
             }
@@ -95,6 +94,17 @@ internal class OverlayModel(
         }
     }
 
+    private val scaleControlDragEventHandler: (Float, Float, Float, Float, Float, Float) -> Unit = { prevX, prevY, newX, newY, deltaX, deltaY ->
+        Log.e("godgod", "expand dragEvent prevX : $prevX, prevY : $prevY, newX : $newX, newY : $newY, deltaX : $deltaX, deltaY : $deltaY")
+        val scale = 1 + (deltaX / prevX)
+        Log.e("godgod", "scale $scale")
+        contentsModel.updateScale(scale, scale, 0f)
+        this.updateScale(scale, scale, 0f)
+        /* controllerMap.values.forEach {
+             it.updateScale(scale, scale, 0f)
+         }*/
+    }
+
     private val controllerMap by lazy {
         val center = this.center
         val size = this.size
@@ -105,7 +115,8 @@ internal class OverlayModel(
                 centerX = center.x - (size.width / 2),
                 centerY = (size.height) - center.y,
                 centerZ = 0f,
-                radius = 0.1f
+                radius = 0.1f,
+                onDragEvent = scaleControlDragEventHandler
             ),
             ControllerType.ROTATE to TextureCircleModel(
                 context = context,
@@ -113,7 +124,10 @@ internal class OverlayModel(
                 centerX = center.x + (size.width / 2),
                 centerY = center.y - (size.height),
                 centerZ = 0f,
-                radius = 0.1f
+                radius = 0.1f,
+                onDragEvent = { prevX, prevY, newX, newY, deltaX, deltaY ->
+
+                }
             ),
             ControllerType.CLOSE to TextureCircleModel(
                 context = context,
@@ -121,7 +135,10 @@ internal class OverlayModel(
                 centerX = center.x + (size.width / 2),
                 centerY = (size.height) - center.y,
                 centerZ = 0f,
-                radius = 0.1f
+                radius = 0.1f,
+                onDragEvent = { prevX, prevY, newX, newY, deltaX, deltaY ->
+
+                }
             )
         )
     }
@@ -175,13 +192,14 @@ internal class OverlayModel(
 
     private fun isTouched(x: Float, y: Float): Boolean {
         val inversedCombinedM = createIdentity4Matrix().apply {
-            Matrix.invertM(this, 0, combinedMatrix, 0)
+            Matrix.invertM(this, 0, getCombinedMatrix(), 0)
         }
-        val notNormalizePoint = getTempVector3DArray(x, y, 0f).apply {
+        val notNormalizePoint = createVector4DArray(x, y, 0f).apply {
             Matrix.multiplyMV(this, 0, inversedCombinedM, 0, this, 0)
         }
 
         val (notNormalX, notNormalY) = notNormalizePoint
+        Log.e("godgod", "$notNormalX  $notNormalY")
         return notNormalX >= -1 && notNormalX <= 1 && notNormalY >= -1 && notNormalY <= 1
     }
 
