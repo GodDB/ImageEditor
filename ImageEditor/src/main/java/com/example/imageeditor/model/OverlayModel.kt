@@ -193,10 +193,10 @@ internal class OverlayModel(
             }
         } else {
             if (!isPressed) return
-            contentsModel.updateTranslation(-deltaX, -deltaY, 0f)
-            updateTranslation(-deltaX, -deltaY, 0f)
+            contentsModel.updateTranslation(deltaX, deltaY, 0f)
+            updateTranslation(deltaX, deltaY, 0f)
             controllerMap.values.forEach {
-                it.updateTranslation(-deltaX, -deltaY, 0f)
+                it.updateTranslation(deltaX, deltaY, 0f)
             }
         }
     }

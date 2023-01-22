@@ -26,10 +26,8 @@ internal class TextureCircleModel(
     private val centerY: Float,
     private val centerZ: Float,
     private val radius: Float,
-    private val onDragEvent : (preesedX : Float, pressedY : Float, moveX : Float, moveY : Float) -> Unit = { _,_,_,_ -> }
+    private val onDragEvent : (prevX : Float, prevY : Float, curX : Float, curY : Float) -> Unit = { _,_,_,_ -> }
 ) : GLESModel() {
-
-    private var _pressedPoint : FloatArray = floatArrayOf(0f, 0f, 0f)
 
     override val center: Vector3D
         get() = kotlin.run {
@@ -148,10 +146,6 @@ internal class TextureCircleModel(
 
     override fun onTouchDown(x: Float, y: Float): Boolean {
         _isPressed = isTouched(x, y)
-        if(isPressed) {
-            _pressedPoint[0] = x
-            _pressedPoint[1] = y
-        }
         return isPressed
     }
 
@@ -161,8 +155,6 @@ internal class TextureCircleModel(
 
     override fun onTouchUp() {
         _isPressed = false
-        _pressedPoint[0] = 0f
-        _pressedPoint[1] = 0f
     }
 
     private fun isTouched(x: Float, y: Float): Boolean {
