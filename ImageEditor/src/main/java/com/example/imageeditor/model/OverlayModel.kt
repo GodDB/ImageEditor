@@ -12,11 +12,11 @@ import com.example.imageeditor.utils.FileReader
 import com.example.imageeditor.utils.Size
 import com.example.imageeditor.utils.Vector3D
 import com.example.imageeditor.utils.createIdentity4Matrix
-import com.example.imageeditor.utils.createVector4DArray
 import com.example.imageeditor.utils.deepCopy
 import com.example.imageeditor.utils.floatBufferOf
 import com.example.imageeditor.utils.intBufferOf
 import com.example.imageeditor.utils.runGL
+import kotlin.math.abs
 
 
 internal class OverlayModel(
@@ -50,8 +50,8 @@ internal class OverlayModel(
                 Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, topRightVector3D.array, 0)
             }
             Size(
-                width = (rightTop[0] + 1) - (leftTop[0] + 1),
-                height = (leftTop[1] + 1) - (leftBottom[1] + 1)
+                width = abs(rightTop[0]) + abs(leftTop[0]),
+                height = abs(leftTop[1]) + abs(leftBottom[1])
             )
         }
 
@@ -94,15 +94,17 @@ internal class OverlayModel(
         }
     }
 
-    private val scaleControlDragEventHandler: (Float, Float, Float, Float, Float, Float) -> Unit = { prevX, prevY, newX, newY, deltaX, deltaY ->
-        Log.e("godgod", "expand dragEvent prevX : $prevX, prevY : $prevY, newX : $newX, newY : $newY, deltaX : $deltaX, deltaY : $deltaY")
+    private val scaleControlDragEventHandler: (Float, Float, Float, Float, Float, Float) -> Unit = { prevX, _, _, _, deltaX, _ ->
         val scale = 1 + (deltaX / prevX)
-        Log.e("godgod", "scale $scale")
+        val prevSize = size
         contentsModel.updateScale(scale, scale, 0f)
         this.updateScale(scale, scale, 0f)
-        /* controllerMap.values.forEach {
-             it.updateScale(scale, scale, 0f)
-         }*/
+        val newSize = size
+        val transX = (newSize.width - prevSize.width) / 2
+        val transY = (newSize.height - prevSize.height) / 2
+        controllerMap.forEach { key, value ->
+            value.updateTranslation(transX * key.directionX, transY * key.directionY, 0f)
+        }
     }
 
     private val controllerMap by lazy {
@@ -132,8 +134,8 @@ internal class OverlayModel(
             ControllerType.CLOSE to TextureCircleModel(
                 context = context,
                 imgRes = R.drawable.close,
-                centerX = center.x + (size.width / 2),
-                centerY = (size.height) - center.y,
+                centerX = center.x - (size.width / 2),
+                centerY = center.y - (size.height),
                 centerZ = 0f,
                 radius = 0.1f,
                 onDragEvent = { prevX, prevY, newX, newY, deltaX, deltaY ->
@@ -158,11 +160,7 @@ internal class OverlayModel(
         contentsModel.draw()
         if (!isVisible) return
         program.bind()
-
-        program.updateUniformMatrix4f("u_Trans", transBuffer)
-        program.updateUniformMatrix4f("u_Rotate", rotateBuffer)
-        program.updateUniformMatrix4f("u_Scale", scaleBuffer)
-
+        program.updateUniformMatrix4f("u_Model", getCombinedBuffer())
         val vertexPointer = runGL { program.getAttributePointer("v_Position") }
 
         vertices.position(0)
@@ -191,16 +189,13 @@ internal class OverlayModel(
     }
 
     private fun isTouched(x: Float, y: Float): Boolean {
-        val inversedCombinedM = createIdentity4Matrix().apply {
-            Matrix.invertM(this, 0, getCombinedMatrix(), 0)
-        }
-        val notNormalizePoint = createVector4DArray(x, y, 0f).apply {
-            Matrix.multiplyMV(this, 0, inversedCombinedM, 0, this, 0)
-        }
-
-        val (notNormalX, notNormalY) = notNormalizePoint
-        Log.e("godgod", "$notNormalX  $notNormalY")
-        return notNormalX >= -1 && notNormalX <= 1 && notNormalY >= -1 && notNormalY <= 1
+        val localSize = size
+        val localCenter = center
+        val left = localCenter.x - (localSize.width / 2)
+        val right = localCenter.x + (localSize.width / 2)
+        val top = localCenter.y + (localSize.height / 2)
+        val bottom = localCenter.y - (localSize.height / 2)
+        return x >= left && x <= right && y >= bottom && y <= top
     }
 
     override fun onTouchMove(x: Float, y: Float, deltaX: Float, deltaY: Float) {
@@ -226,6 +221,6 @@ internal class OverlayModel(
     }
 }
 
-private enum class ControllerType {
-    CLOSE, SCALE, ROTATE
+private enum class ControllerType(val directionX: Float, val directionY: Float) {
+    CLOSE(1f, 1f), SCALE(1f, -1f), ROTATE(-1f, 1f)
 }

@@ -6,24 +6,30 @@ import com.example.imageeditor.utils.Size
 import com.example.imageeditor.utils.Vector3D
 import com.example.imageeditor.utils.asBuffer
 import com.example.imageeditor.utils.createIdentity4Matrix
+import com.example.imageeditor.utils.readOnlyIdentity4Matrix
+import java.nio.FloatBuffer
 
 internal abstract class GLESModel(
     val scaleM: FloatArray = createIdentity4Matrix(),
     val transM: FloatArray = createIdentity4Matrix(),
     val rotateM: FloatArray = createIdentity4Matrix()
 ) {
-    protected val scaleBuffer = scaleM.asBuffer()
-    protected val transBuffer = transM.asBuffer()
-    protected val rotateBuffer = rotateM.asBuffer()
     private val combinedMatrix: FloatArray = createIdentity4Matrix()
+    private val combinedBuffer: FloatBuffer = combinedMatrix.asBuffer()
 
+    private val TRMatrix : FloatArray = createIdentity4Matrix()
+    private val TRSMatrix : FloatArray = createIdentity4Matrix()
     protected fun getCombinedMatrix(): FloatArray {
         return this.combinedMatrix.apply {
-            Matrix.setIdentityM(this, 0)
-            Matrix.multiplyMM(this, 0, this, 0, transM, 0)
-            Matrix.multiplyMM(this, 0, this, 0, rotateM, 0)
-            Matrix.multiplyMM(this, 0, this, 0, scaleM, 0)
+            Matrix.multiplyMM(TRMatrix, 0, transM, 0, rotateM, 0)
+            Matrix.multiplyMM(TRSMatrix, 0, TRMatrix, 0, scaleM, 0)
+            Matrix.multiplyMM(this, 0, TRSMatrix, 0, readOnlyIdentity4Matrix, 0)
         }
+    }
+
+    protected fun getCombinedBuffer() : FloatBuffer {
+        getCombinedMatrix()
+        return combinedBuffer
     }
 
     open val size: Size
@@ -63,15 +69,15 @@ internal abstract class GLESModel(
     }
 
     fun updateTranslation(newTransM: FloatArray) {
-        Matrix.multiplyMM(transM, 0, transM, 0, newTransM, 0)
+        Matrix.multiplyMM(transM, 0, newTransM, 0, readOnlyIdentity4Matrix, 0)
     }
 
     fun updateRotation(newRotateM: FloatArray) {
-        Matrix.multiplyMM(rotateM, 0, rotateM, 0, newRotateM, 0)
+        Matrix.multiplyMM(rotateM, 0, newRotateM, 0, readOnlyIdentity4Matrix, 0)
     }
 
     fun updateScale(newScaleM: FloatArray) {
-        Matrix.multiplyMM(scaleM, 0, scaleM, 0, newScaleM, 0)
+        Matrix.multiplyMM(scaleM, 0, newScaleM, 0, readOnlyIdentity4Matrix, 0)
     }
 
     fun updateTranslation(x: Float, y: Float, z: Float) {

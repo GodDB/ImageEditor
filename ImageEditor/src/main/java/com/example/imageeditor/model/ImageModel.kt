@@ -12,6 +12,7 @@ import com.example.imageeditor.utils.FLOAT_BYTE_SIZE
 import com.example.imageeditor.utils.FileReader
 import com.example.imageeditor.utils.Size
 import com.example.imageeditor.utils.Vector3D
+import com.example.imageeditor.utils.asBuffer
 import com.example.imageeditor.utils.createIdentity4Matrix
 import com.example.imageeditor.utils.floatBufferOf
 import com.example.imageeditor.utils.intBufferOf
@@ -43,6 +44,7 @@ internal class ImageModel(
         0f, 0f, 0f, 0.5f, 0.5f
     )
 
+
     private val vertexIndices = intBufferOf(
         1, 2, 0,
         2, 0, 3,
@@ -62,8 +64,8 @@ internal class ImageModel(
                 Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, topRightVector3D.array, 0)
             }
             Size(
-                width = (rightTop[0] + 1) - (leftTop[0] + 1),
-                height = (leftTop[1] + 1) - (leftBottom[1] + 1)
+                width = abs(rightTop[0]) + abs(leftTop[0]),
+                height = abs(leftTop[1]) + abs(leftBottom[1])
             )
         }
 
@@ -128,9 +130,7 @@ internal class ImageModel(
         if (!isVisible) return
         program.bind()
         texture.bind()
-        program.updateUniformMatrix4f("u_Trans", transBuffer)
-        program.updateUniformMatrix4f("u_Rotate", rotateBuffer)
-        program.updateUniformMatrix4f("u_Scale", scaleBuffer)
+        program.updateUniformMatrix4f("u_Model", getCombinedBuffer())
         drawVertices(program)
         drawTexture(program)
         runGL { GLES20.glDrawElements(GLES20.GL_TRIANGLES, vertexIndices.capacity(), GLES20.GL_UNSIGNED_INT, vertexIndices) }

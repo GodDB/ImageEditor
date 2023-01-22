@@ -11,12 +11,15 @@ import com.example.imageeditor.core.texture.Texture
 import com.example.imageeditor.utils.BitmapUtil
 import com.example.imageeditor.utils.FLOAT_BYTE_SIZE
 import com.example.imageeditor.utils.FileReader
+import com.example.imageeditor.utils.Size
 import com.example.imageeditor.utils.Vector3D
+import com.example.imageeditor.utils.asBuffer
 import com.example.imageeditor.utils.createIdentity4Matrix
 import com.example.imageeditor.utils.createVector4DArray
 import com.example.imageeditor.utils.intBufferOf
 import com.example.imageeditor.utils.runGL
 import com.example.imageeditor.utils.toBuffer
+import kotlin.math.abs
 
 internal class TextureCircleModel(
     context: Context,
@@ -28,16 +31,42 @@ internal class TextureCircleModel(
     private val onDragEvent: (prevX: Float, prevY: Float, curX: Float, curY: Float, deltaX: Float, deltaY: Float) -> Unit = { _, _, _, _, _, _ -> }
 ) : GLESModel() {
 
+    private val leftCenterVector3D = Vector3D(centerX - radius, centerY, centerZ)
+    private val topCenterVector3D = Vector3D(centerX, centerY + radius, centerZ)
+    private val rightCenterVector3D = Vector3D(centerX + radius, centerY, centerZ)
+    private val bottomCenterVector3D = Vector3D(centerX, centerY - radius, centerZ)
+    private val centerVector3D = Vector3D(centerX, centerY, centerZ)
+
+    override val size: Size
+        get() = kotlin.run {
+            val localCombinedMatrix = getCombinedMatrix()
+            val leftCenter = createIdentity4Matrix().apply {
+                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, leftCenterVector3D.array, 0)
+            }
+            val bottomCenter = createIdentity4Matrix().apply {
+                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, bottomCenterVector3D.array, 0)
+            }
+            val rightCenter = createIdentity4Matrix().apply {
+                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, rightCenterVector3D.array, 0)
+            }
+            val topCenter = createIdentity4Matrix().apply {
+                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, topCenterVector3D.array, 0)
+            }
+            Size(
+                width = abs(rightCenter[0]) + abs(leftCenter[0]),
+                height = abs(topCenter[1]) + abs(bottomCenter[1])
+            )
+        }
+
     override val center: Vector3D
         get() = kotlin.run {
-            val centerVector3D = createVector4DArray(centerX, centerY, centerZ)
-            val result = createIdentity4Matrix().apply {
-                Matrix.multiplyMV(this, 0, getCombinedMatrix(), 0, centerVector3D, 0)
+            val localcenter = createIdentity4Matrix().apply {
+                Matrix.multiplyMV(this, 0, getCombinedMatrix(), 0 , centerVector3D.array, 0)
             }
             Vector3D(
-                x = result[0],
-                y = result[1],
-                z = result[2]
+                x = localcenter[0],
+                y = localcenter[1],
+                z = localcenter[2]
             )
         }
 
@@ -100,9 +129,7 @@ internal class TextureCircleModel(
         program.bind()
         texture.bind()
 
-        program.updateUniformMatrix4f("u_Trans", transBuffer)
-        program.updateUniformMatrix4f("u_Rotate", rotateBuffer)
-        program.updateUniformMatrix4f("u_Scale", scaleBuffer)
+        program.updateUniformMatrix4f("u_Model", getCombinedBuffer())
 
         drawTexture()
         drawCircle()
