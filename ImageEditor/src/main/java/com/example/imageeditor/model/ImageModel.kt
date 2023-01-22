@@ -108,7 +108,7 @@ internal class ImageModel(
         // 텍스처는 기본적으로 gl과 상하반전이 있기 때문에 z축 180도 회전한다.
         val scaleVector = getTextureScaleVector(width, height, texture.width, texture.height)
         updateScale(scaleVector.x, scaleVector.y, scaleVector.z)
-        updateRotation(180f, 0f, 0f, 1f)
+       // updateRotation(180f, 0f, 0f, 1f)
     }
 
     private fun getTextureScaleVector(deviceWidth: Int, deviceHeight: Int, textureWidth: Int, textureHeight: Int): Vector3D {

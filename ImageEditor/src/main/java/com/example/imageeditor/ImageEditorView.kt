@@ -3,10 +3,16 @@ package com.example.imageeditor
 import android.content.Context
 import android.opengl.GLSurfaceView
 import android.view.MotionEvent
+import android.view.View
+import android.view.ViewGroup
 import com.example.imageeditor.utils.AndroidUtil.getStatusBarHeight
 import com.example.imageeditor.utils.BitmapUtil
 
 class ImageEditorView(_context: Context) : GLSurfaceView(_context) {
+
+    init {
+        layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+    }
 
     private val renderer: ImageEditorRenderer by lazy {
         ImageEditorRenderer(context)

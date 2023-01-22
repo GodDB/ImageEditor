@@ -6,19 +6,20 @@ import com.example.imageeditor.utils.Size
 import com.example.imageeditor.utils.Vector3D
 import com.example.imageeditor.utils.asBuffer
 import com.example.imageeditor.utils.createIdentity4Matrix
+import com.example.imageeditor.utils.deepCopy
 import com.example.imageeditor.utils.readOnlyIdentity4Matrix
 import java.nio.FloatBuffer
 
 internal abstract class GLESModel(
-    val scaleM: FloatArray = createIdentity4Matrix(),
-    val transM: FloatArray = createIdentity4Matrix(),
-    val rotateM: FloatArray = createIdentity4Matrix()
+    protected val scaleM: FloatArray = createIdentity4Matrix(),
+    protected val transM: FloatArray = createIdentity4Matrix(),
+    protected val rotateM: FloatArray = createIdentity4Matrix()
 ) {
     private val combinedMatrix: FloatArray = createIdentity4Matrix()
     private val combinedBuffer: FloatBuffer = combinedMatrix.asBuffer()
 
-    private val TRMatrix : FloatArray = createIdentity4Matrix()
-    private val TRSMatrix : FloatArray = createIdentity4Matrix()
+    private val TRMatrix: FloatArray = createIdentity4Matrix()
+    private val TRSMatrix: FloatArray = createIdentity4Matrix()
     protected fun getCombinedMatrix(): FloatArray {
         return this.combinedMatrix.apply {
             Matrix.multiplyMM(TRMatrix, 0, transM, 0, rotateM, 0)
@@ -27,7 +28,7 @@ internal abstract class GLESModel(
         }
     }
 
-    protected fun getCombinedBuffer() : FloatBuffer {
+    protected fun getCombinedBuffer(): FloatBuffer {
         getCombinedMatrix()
         return combinedBuffer
     }
@@ -90,5 +91,30 @@ internal abstract class GLESModel(
 
     fun updateScale(scaleX: Float, scaleY: Float, scaleZ: Float) {
         Matrix.scaleM(scaleM, 0, scaleX, scaleY, scaleZ)
+    }
+
+    fun setTranslation(x: Float, y: Float, z: Float) {
+        val newTransM = createIdentity4Matrix().apply {
+            Matrix.translateM(this, 0, x, y, z)
+        }
+        Matrix.setIdentityM(transM, 0)
+        Matrix.multiplyMM(transM, 0, readOnlyIdentity4Matrix, 0, newTransM, 0)
+    }
+
+    fun setTranslation(newTransM : FloatArray) {
+        Matrix.setIdentityM(transM, 0)
+        Matrix.multiplyMM(transM, 0, readOnlyIdentity4Matrix, 0, newTransM, 0)
+    }
+
+    fun getCopiedScaleM(): FloatArray {
+        return scaleM.deepCopy()
+    }
+
+    fun getCopiedTransM(): FloatArray {
+        return transM.deepCopy()
+    }
+
+    fun getCopiedRotateM(): FloatArray {
+        return rotateM.deepCopy()
     }
 }

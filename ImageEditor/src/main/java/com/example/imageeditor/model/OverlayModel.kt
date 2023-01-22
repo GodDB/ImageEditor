@@ -12,11 +12,13 @@ import com.example.imageeditor.utils.FileReader
 import com.example.imageeditor.utils.Size
 import com.example.imageeditor.utils.Vector3D
 import com.example.imageeditor.utils.createIdentity4Matrix
+import com.example.imageeditor.utils.createVector4DArray
 import com.example.imageeditor.utils.deepCopy
 import com.example.imageeditor.utils.floatBufferOf
 import com.example.imageeditor.utils.intBufferOf
 import com.example.imageeditor.utils.runGL
 import kotlin.math.abs
+import kotlin.math.atan2
 
 
 internal class OverlayModel(
@@ -96,63 +98,76 @@ internal class OverlayModel(
 
     private val scaleControlDragEventHandler: (Float, Float, Float, Float, Float, Float) -> Unit = { prevX, _, _, _, deltaX, _ ->
         val scale = 1 + (deltaX / prevX)
-        val prevSize = size
         contentsModel.updateScale(scale, scale, 0f)
         this.updateScale(scale, scale, 0f)
-        val newSize = size
-        val transX = (newSize.width - prevSize.width) / 2
-        val transY = (newSize.height - prevSize.height) / 2
         controllerMap.forEach { key, value ->
-            value.updateTranslation(transX * key.directionX, transY * key.directionY, 0f)
+            val newVector = createVector4DArray(0f, 0f, 0f).apply {
+                Matrix.multiplyMV(this, 0, getCombinedMatrix(), 0, key.directionVector.array, 0)
+            }
+            value.setTranslation(newVector[0], newVector[1], newVector[2])
         }
     }
 
+    private var prevRadian: Float? = null
+
+    private val rotateControlDragEventHandler: (Float, Float, Float, Float, Float, Float) -> Unit = { prevX, prevY, curX, curY, deltaX, deltaY ->
+        if (prevRadian == null) {
+            val center = controllerMap.get(ControllerType.ROTATE)!!.center
+            prevRadian = atan2(center.y, center.x)
+        }
+        val radian = atan2(curY - center.y, curX - center.x)
+        val newRadian = radian - prevRadian!!
+        prevRadian = radian
+        val degree = Math.toDegrees(newRadian.toDouble())
+        //  contentsModel.updateRotation(degree.toFloat(), 0f, 0f, 1f)
+        //this.updateRotation(degree.toFloat(), 0f, 0f, 1f)
+    }
+
     private val controllerMap by lazy {
-        val center = this.center
-        val size = this.size
         hashMapOf(
             ControllerType.SCALE to TextureCircleModel(
                 context = context,
                 imgRes = R.drawable.expand,
-                centerX = center.x - (size.width / 2),
-                centerY = (size.height) - center.y,
+                centerX = 0f,
+                centerY = 0f,
                 centerZ = 0f,
-                radius = 0.1f,
+                radius = 1f,
                 onDragEvent = scaleControlDragEventHandler
             ),
             ControllerType.ROTATE to TextureCircleModel(
                 context = context,
                 imgRes = R.drawable.rotate,
-                centerX = center.x + (size.width / 2),
-                centerY = center.y - (size.height),
+                centerX = 0f,
+                centerY = 0f,
                 centerZ = 0f,
-                radius = 0.1f,
-                onDragEvent = { prevX, prevY, newX, newY, deltaX, deltaY ->
-
-                }
+                radius = 1f,
+                onDragEvent = rotateControlDragEventHandler
             ),
             ControllerType.CLOSE to TextureCircleModel(
                 context = context,
                 imgRes = R.drawable.close,
-                centerX = center.x - (size.width / 2),
-                centerY = center.y - (size.height),
+                centerX = 0f,
+                centerY = 0f,
                 centerZ = 0f,
-                radius = 0.1f,
-                onDragEvent = { prevX, prevY, newX, newY, deltaX, deltaY ->
-
-                }
+                radius = 1f,
+                onDragEvent = { prevX, prevY, newX, newY, deltaX, deltaY -> }
             )
         )
     }
 
     override fun init(width: Int, height: Int) {
         contentsModel.init(width, height)
-        updateTranslation(contentsModel.transM.deepCopy())
-        updateRotation(contentsModel.rotateM.deepCopy())
-        updateScale(contentsModel.scaleM.deepCopy())
+        updateTranslation(contentsModel.getCopiedTransM())
+        updateRotation(contentsModel.getCopiedRotateM())
+        updateScale(contentsModel.getCopiedScaleM())
         updateScale(1.1f, 1.2f, 1f)
-        controllerMap.values.forEach {
-            it.init(width, height)
+        controllerMap.forEach { key, value ->
+            value.init(width, height)
+            value.updateScale(0.1f, 0.1f, 0.1f)
+            val newVector = createVector4DArray(0f, 0f, 0f).apply {
+                Matrix.multiplyMV(this, 0, getCombinedMatrix(), 0, key.directionVector.array, 0)
+            }
+            value.setTranslation(newVector[0], newVector[1], newVector[2])
         }
     }
 
@@ -221,6 +236,6 @@ internal class OverlayModel(
     }
 }
 
-private enum class ControllerType(val directionX: Float, val directionY: Float) {
-    CLOSE(1f, 1f), SCALE(1f, -1f), ROTATE(-1f, 1f)
+private enum class ControllerType(val directionVector: Vector3D) {
+    CLOSE(Vector3D(1f, 1f, 0f)), SCALE(Vector3D(-1f, 1f, 0f)), ROTATE(Vector3D(1f, -1f, 0f))
 }
