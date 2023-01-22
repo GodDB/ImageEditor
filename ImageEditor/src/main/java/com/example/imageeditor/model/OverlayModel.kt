@@ -198,14 +198,14 @@ internal class OverlayModel(
         }
     }
 
-    override fun onTouchDown(x: Float, y: Float): Boolean {
-        val controllerTouched = controllerMap.values.any { it.onTouchDown(x, y) }
+    override fun onTouchDown(rawX : Float, rawY : Float, normalizeX: Float, normalizeY: Float): Boolean {
+        val controllerTouched = controllerMap.values.any { it.onTouchDown(rawX, rawY, normalizeX, normalizeY) }
         if (controllerTouched) {
             Log.e("godgod", "controller down")
             _isPressed = false
             return controllerTouched
         } else {
-            _isPressed = isTouched(x, y)
+            _isPressed = isTouched(normalizeX, normalizeY)
             Log.e("godgod", "overlay down $isPressed")
             return isPressed
         }
@@ -224,18 +224,18 @@ internal class OverlayModel(
         return notNormalX >= -1 && notNormalX <= 1 && notNormalY >= -1 && notNormalY <= 1
     }
 
-    override fun onTouchMove(x: Float, y: Float, deltaX: Float, deltaY: Float) {
+    override fun onTouchMove(rawX : Float, rawY : Float, normalizeX: Float, normalizeY: Float, normalizeDeltaX: Float, normalizeDeltaY: Float) {
         val controllerTouched = controllerMap.values.any { it.isPressed }
         if (controllerTouched) {
             controllerMap.values.forEach {
-                it.onTouchMove(x, y, deltaX, deltaY)
+                it.onTouchMove(rawX, rawY, normalizeX, normalizeY, normalizeDeltaX, normalizeDeltaY)
             }
         } else {
             if (!isPressed) return
-            contentsModel.updateTranslation(deltaX, deltaY, 0f)
-            updateTranslation(deltaX, deltaY, 0f)
+            contentsModel.updateTranslation(normalizeDeltaX, normalizeDeltaY, 0f)
+            updateTranslation(normalizeDeltaX, normalizeDeltaY, 0f)
             controllerMap.values.forEach {
-                it.updateTranslation(deltaX, deltaY, 0f)
+                it.updateTranslation(normalizeDeltaX, normalizeDeltaY, 0f)
             }
         }
     }

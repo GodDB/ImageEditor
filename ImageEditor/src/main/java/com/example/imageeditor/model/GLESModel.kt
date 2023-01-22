@@ -105,11 +105,11 @@ internal abstract class GLESModel(
         _isVisible = visible
     }
 
-    open fun onTouchDown(x: Float, y: Float): Boolean {
+    open fun onTouchDown(rawX : Float, rawY : Float, normalizeX: Float, normalizeY: Float): Boolean {
         return false
     }
 
-    open fun onTouchMove(x: Float, y: Float, deltaX: Float, deltaY: Float) {
+    open fun onTouchMove(rawX : Float, rawY : Float, normalizeX: Float, normalizeY: Float, normalizeDeltaX: Float, normalizeDeltaY: Float) {
 
     }
 

@@ -171,16 +171,16 @@ internal class TextureCircleModel(
         runGL { GLES20.glEnableVertexAttribArray(0) } // vertexArray를 비활성화 한다.
     }
 
-    override fun onTouchDown(x: Float, y: Float): Boolean {
-        _isPressed = isTouched(x, y)
+    override fun onTouchDown(rawX : Float, rawY : Float, normalizeX: Float, normalizeY: Float): Boolean {
+        _isPressed = isTouched(normalizeX, normalizeY)
         return isPressed
     }
 
-    override fun onTouchMove(x: Float, y: Float, deltaX: Float, deltaY: Float) {
+    override fun onTouchMove(rawX : Float, rawY : Float, normalizeX: Float, normalizeY: Float, normalizeDeltaX: Float, normalizeDeltaY: Float) {
         if (!isPressed) return
-        val prevX = x - deltaX
-        val prevY = y - deltaY
-        onDragEvent.invoke(prevX, prevY, x, y, deltaX, deltaY)
+        val prevX = normalizeX - normalizeDeltaX
+        val prevY = normalizeY - normalizeDeltaY
+        onDragEvent.invoke(prevX, prevY, normalizeX, normalizeY, normalizeDeltaX, normalizeDeltaY)
     }
 
     override fun onTouchUp() {
