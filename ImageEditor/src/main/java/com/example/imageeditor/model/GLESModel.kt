@@ -145,13 +145,18 @@ internal abstract class GLESModel(
         val newTransM = createIdentity4Matrix().apply {
             Matrix.translateM(this, 0, x, y, z)
         }
-        Matrix.setIdentityM(transM, 0)
         Matrix.multiplyMM(transM, 0, readOnlyIdentity4Matrix, 0, newTransM, 0)
     }
 
     fun setTranslation(newTransM: FloatArray) {
-        Matrix.setIdentityM(transM, 0)
         Matrix.multiplyMM(transM, 0, readOnlyIdentity4Matrix, 0, newTransM, 0)
+    }
+
+    fun setRotate(angle: Float, weightX: Float, weightY: Float, weightZ: Float) {
+        val newRotateM = createIdentity4Matrix().apply {
+            Matrix.rotateM(this, 0, angle, weightX, weightY, weightZ)
+        }
+        Matrix.multiplyMM(rotateM, 0, readOnlyIdentity4Matrix, 0, newRotateM, 0)
     }
 
     fun getCopiedScaleM(): FloatArray {
