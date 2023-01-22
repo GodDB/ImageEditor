@@ -3,7 +3,6 @@ package com.example.imageeditor.model
 import android.content.Context
 import android.opengl.GLES20
 import android.opengl.Matrix
-import android.util.Log
 import com.example.imageeditor.R
 import com.example.imageeditor.core.shader.Shader
 import com.example.imageeditor.core.shader.ShaderProgram
@@ -16,6 +15,7 @@ import com.example.imageeditor.utils.deepCopy
 import com.example.imageeditor.utils.floatBufferOf
 import com.example.imageeditor.utils.intBufferOf
 import com.example.imageeditor.utils.runGL
+
 
 internal class OverlayModel(
     context: Context,
@@ -65,9 +65,6 @@ internal class OverlayModel(
             val rightTop = createIdentity4Matrix().apply {
                 Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, topRightVector3D.array, 0)
             }
-            val rightBottom = createIdentity4Matrix().apply {
-                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, bottomRightVector3D.array, 0)
-            }
 
             Vector3D(
                 x = (leftTop[0] + rightTop[0]) / 2,
@@ -95,31 +92,31 @@ internal class OverlayModel(
         }
     }
 
-    private val circleArray by lazy {
+    private val controllerMap by lazy {
         val center = this.center
         val size = this.size
-        listOf(
-            TextureCircleModel(
+        hashMapOf(
+            ControllerType.SCALE to TextureCircleModel(
                 context = context,
-                imgRes = com.google.android.material.R.drawable.ic_clock_black_24dp,
-                centerX = center.x - (size.width/2),
+                imgRes = R.drawable.expand,
+                centerX = center.x - (size.width / 2),
                 centerY = (size.height) - center.y,
                 centerZ = 0f,
                 radius = 0.1f
             ),
-            TextureCircleModel(
+            ControllerType.ROTATE to TextureCircleModel(
                 context = context,
-                imgRes = com.google.android.material.R.drawable.ic_clock_black_24dp,
-                centerX = center.x + (size.width/2),
-                centerY = (size.height) - center.y,
+                imgRes = R.drawable.rotate,
+                centerX = center.x + (size.width / 2),
+                centerY = center.y - (size.height),
                 centerZ = 0f,
                 radius = 0.1f
             ),
-            TextureCircleModel(
+            ControllerType.CLOSE to TextureCircleModel(
                 context = context,
-                imgRes = com.google.android.material.R.drawable.ic_clock_black_24dp,
-                centerX = center.x + (size.width/2),
-                centerY = center.y - (size.height) ,
+                imgRes = R.drawable.close,
+                centerX = center.x + (size.width / 2),
+                centerY = (size.height) - center.y,
                 centerZ = 0f,
                 radius = 0.1f
             )
@@ -134,7 +131,7 @@ internal class OverlayModel(
         updateRotation(contentsModel.rotateM.deepCopy())
         updateScale(contentsModel.scaleM.deepCopy())
         updateScale(1.1f, 1.2f, 1f)
-        circleArray.forEach {
+        controllerMap.values.forEach {
             it.init(width, height)
         }
     }
@@ -157,14 +154,13 @@ internal class OverlayModel(
         runGL { GLES20.glEnableVertexAttribArray(0) } // vertexArray를 비활성화 한다.
 
         program.unbind()
-        circleArray.forEach {
+        controllerMap.values.forEach {
             it.draw()
         }
     }
 
     override fun onTouchDown(x: Float, y: Float): Boolean {
         isPressed = isTouched(x, y)
-        setVisible(isPressed)
         if (isPressed) {
             contentsModel.onTouchDown(x, y)
         }
@@ -189,7 +185,7 @@ internal class OverlayModel(
         if (!isPressed) return
         contentsModel.updateTranslation(-deltaX, -deltaY, 0f)
         updateTranslation(-deltaX, -deltaY, 0f)
-        circleArray.forEach {
+        controllerMap.values.forEach {
             it.updateTranslation(-deltaX, -deltaY, 0f)
         }
     }
@@ -198,7 +194,9 @@ internal class OverlayModel(
         if (!isPressed) return
         contentsModel.onTouchUp()
         isPressed = false
-        setVisible(isPressed)
     }
+}
 
+private enum class ControllerType {
+    CLOSE, SCALE, ROTATE
 }
