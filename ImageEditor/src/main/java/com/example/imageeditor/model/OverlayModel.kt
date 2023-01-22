@@ -163,13 +163,13 @@ internal class OverlayModel(
     }
 
     override fun init(width: Int, height: Int) {
-        contentsModel.init(width, height)
+        contentsModel.dispatchInit(width, height, projectionM)
         updateTranslation(contentsModel.getCopiedTransM())
         updateRotation(contentsModel.getCopiedRotateM())
         updateScale(contentsModel.getCopiedScaleM())
         updateScale(1.1f, 1.2f, 1f)
         controllerMap.forEach { key, value ->
-            value.init(width, height)
+            value.dispatchInit(width, height, projectionM)
             value.updateScale(0.1f, 0.1f, 0.1f)
             val newVector = createVector4DArray(0f, 0f, 0f).apply {
                 Matrix.multiplyMV(this, 0, getCombinedMatrix(), 0, key.directionVector.array, 0)
@@ -178,12 +178,12 @@ internal class OverlayModel(
         }
     }
 
-    override fun draw(projectionM : FloatBuffer) {
-        contentsModel.dispatchDraw(projectionM)
+    override fun draw() {
+        contentsModel.dispatchDraw()
         if (!isVisible) return
         program.bind()
         program.updateUniformMatrix4f("u_Model", getCombinedBuffer())
-        program.updateUniformMatrix4f("u_Projection", projectionM)
+        program.updateUniformMatrix4f("u_Projection", projectionBuffer)
         val vertexPointer = runGL { program.getAttributePointer("v_Position") }
 
         vertices.position(0)
@@ -194,7 +194,7 @@ internal class OverlayModel(
 
         program.unbind()
         controllerMap.values.forEach {
-            it.dispatchDraw(projectionM)
+            it.dispatchDraw()
         }
     }
 

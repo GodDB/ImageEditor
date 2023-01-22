@@ -123,15 +123,14 @@ internal class TextureCircleModel(
 
     override fun init(width: Int, height: Int) {
         updateRotation(180f, 0f, 0f, 1f)
-        updateScale(1f, width / height.toFloat(), 1f)
     }
 
-    override fun draw(projectionM : FloatBuffer) {
+    override fun draw() {
         program.bind()
         texture.bind()
 
         program.updateUniformMatrix4f("u_Model", getCombinedBuffer())
-        program.updateUniformMatrix4f("u_Projection", projectionM)
+        program.updateUniformMatrix4f("u_Projection", projectionBuffer)
 
         drawTexture()
         drawCircle()

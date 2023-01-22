@@ -27,7 +27,6 @@ internal class ImageEditorRenderer(private val context: Context) : GLESRenderer(
     private var pressedPoint: PointF? = null
 
     private val projectM : FloatArray = createIdentity4Matrix()
-    private val projectBuffer : FloatBuffer = projectM.asBuffer()
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         Log.e("godgod", "onSurfaceCreated")
@@ -44,7 +43,7 @@ internal class ImageEditorRenderer(private val context: Context) : GLESRenderer(
         createProjectionM(glViewWidth, glViewHeight)
 
         models.forEach {
-            it.init(glViewWidth, glViewHeight)
+            it.dispatchInit(glViewWidth, glViewHeight, projectM)
         }
     }
 
@@ -68,7 +67,7 @@ internal class ImageEditorRenderer(private val context: Context) : GLESRenderer(
         runGL { GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT or GLES20.GL_COLOR_BUFFER_BIT) }
 
         models.forEach {
-            it.dispatchDraw(projectBuffer)
+            it.dispatchDraw()
         }
     }
 
@@ -78,7 +77,7 @@ internal class ImageEditorRenderer(private val context: Context) : GLESRenderer(
             ImageModel(bitmap, context)
         )
         if (currentState.value >= Lifecycle.DRAW.value) {
-            newModel.init(glViewWidth, glViewHeight)
+            newModel.dispatchInit(glViewWidth, glViewHeight, projectM)
         }
         models.add(newModel)
     }

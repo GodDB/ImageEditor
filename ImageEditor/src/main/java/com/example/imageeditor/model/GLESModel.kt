@@ -48,16 +48,21 @@ internal abstract class GLESModel(
     val isPressed: Boolean
         get() = _isPressed
 
+    val projectionM: FloatArray = createIdentity4Matrix()
+    val projectionBuffer : FloatBuffer = projectionM.asBuffer()
 
-    abstract fun init(width: Int, height: Int)
-
-    fun dispatchDraw(projectM : FloatBuffer) {
-        program.bind()
-        draw(projectM)
-        program.unbind()
+    fun dispatchInit(width: Int, height: Int, newProjectionM: FloatArray) {
+        Matrix.multiplyMM(projectionM, 0, newProjectionM, 0, readOnlyIdentity4Matrix, 0)
+        init(width, height)
     }
 
-    protected abstract fun draw(projectM : FloatBuffer)
+    protected abstract fun init(width: Int, height: Int)
+
+    fun dispatchDraw() {
+        draw()
+    }
+
+    protected abstract fun draw()
 
     fun setVisible(visible: Boolean) {
         _isVisible = visible
@@ -107,7 +112,7 @@ internal abstract class GLESModel(
         Matrix.multiplyMM(transM, 0, readOnlyIdentity4Matrix, 0, newTransM, 0)
     }
 
-    fun setTranslation(newTransM : FloatArray) {
+    fun setTranslation(newTransM: FloatArray) {
         Matrix.setIdentityM(transM, 0)
         Matrix.multiplyMM(transM, 0, readOnlyIdentity4Matrix, 0, newTransM, 0)
     }

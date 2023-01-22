@@ -12,7 +12,6 @@ import com.example.imageeditor.utils.FLOAT_BYTE_SIZE
 import com.example.imageeditor.utils.FileReader
 import com.example.imageeditor.utils.Size
 import com.example.imageeditor.utils.Vector3D
-import com.example.imageeditor.utils.asBuffer
 import com.example.imageeditor.utils.createIdentity4Matrix
 import com.example.imageeditor.utils.floatBufferOf
 import com.example.imageeditor.utils.intBufferOf
@@ -107,32 +106,16 @@ internal class ImageModel(
 
     override fun init(width: Int, height: Int) {
         // 텍스처는 기본적으로 gl과 상하반전이 있기 때문에 z축 180도 회전한다.
-        val scaleVector = getTextureScaleVector(width, height, texture.width, texture.height)
-        updateScale(scaleVector.x, scaleVector.y, scaleVector.z)
-       // updateRotation(180f, 0f, 0f, 1f)
+        //todo texture flip
+        updateScale(0.5f,0.5f, 0.5f)
     }
 
-    private fun getTextureScaleVector(deviceWidth: Int, deviceHeight: Int, textureWidth: Int, textureHeight: Int): Vector3D {
-        val scaleX = if (deviceWidth > textureWidth) {
-            textureWidth.toFloat() / deviceWidth
-        } else {
-            1f
-        }
-
-        val scaleY = if (deviceHeight > textureHeight) {
-            textureHeight.toFloat() / deviceHeight
-        } else {
-            1f
-        }
-        return Vector3D(scaleX, scaleY, 1f)
-    }
-
-    override fun draw(projectionM : FloatBuffer) {
+    override fun draw() {
         if (!isVisible) return
         program.bind()
         texture.bind()
         program.updateUniformMatrix4f("u_Model", getCombinedBuffer())
-        program.updateUniformMatrix4f("u_Projection", projectionM)
+        program.updateUniformMatrix4f("u_Projection", projectionBuffer)
         drawVertices(program)
         drawTexture(program)
         runGL { GLES20.glDrawElements(GLES20.GL_TRIANGLES, vertexIndices.capacity(), GLES20.GL_UNSIGNED_INT, vertexIndices) }
