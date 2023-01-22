@@ -119,8 +119,14 @@ internal class OverlayModel(
         val newRadian = radian - prevRadian!!
         prevRadian = radian
         val degree = Math.toDegrees(newRadian.toDouble())
-        //  contentsModel.updateRotation(degree.toFloat(), 0f, 0f, 1f)
-        //this.updateRotation(degree.toFloat(), 0f, 0f, 1f)
+        contentsModel.updateRotation(degree.toFloat(), 0f, 0f, 1f)
+        this.updateRotation(degree.toFloat(), 0f, 0f, 1f)
+        controllerMap.forEach { key, value ->
+            val newVector = createVector4DArray(0f, 0f, 0f).apply {
+                Matrix.multiplyMV(this, 0, getCombinedMatrix(), 0, key.directionVector.array, 0)
+            }
+            value.setTranslation(newVector[0], newVector[1], newVector[2])
+        }
     }
 
     private val controllerMap by lazy {
