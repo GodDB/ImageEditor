@@ -212,13 +212,16 @@ internal class OverlayModel(
     }
 
     private fun isTouched(x: Float, y: Float): Boolean {
-        val localSize = size
-        val localCenter = center
-        val left = localCenter.x - (localSize.width / 2)
-        val right = localCenter.x + (localSize.width / 2)
-        val top = localCenter.y + (localSize.height / 2)
-        val bottom = localCenter.y - (localSize.height / 2)
-        return x >= left && x <= right && y >= bottom && y <= top
+        val allCombinedM = createIdentity4Matrix().apply {
+            Matrix.multiplyMM(this, 0, inverseCombinedM, 0, inverseProjectionM, 0)
+        }
+
+        val notNormalizePoint = createVector4DArray(x, y, 0f).apply {
+            Matrix.multiplyMV(this, 0, allCombinedM, 0, this, 0)
+        }
+
+        val (notNormalX, notNormalY) = notNormalizePoint
+        return notNormalX >= -1 && notNormalX <= 1 && notNormalY >= -1 && notNormalY <= 1
     }
 
     override fun onTouchMove(x: Float, y: Float, deltaX: Float, deltaY: Float) {

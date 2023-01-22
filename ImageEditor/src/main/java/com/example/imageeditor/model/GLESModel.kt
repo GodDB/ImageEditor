@@ -49,7 +49,44 @@ internal abstract class GLESModel(
         get() = _isPressed
 
     val projectionM: FloatArray = createIdentity4Matrix()
-    val projectionBuffer : FloatBuffer = projectionM.asBuffer()
+    val projectionBuffer: FloatBuffer = projectionM.asBuffer()
+
+    protected val inverseProjectionM: FloatArray = createIdentity4Matrix()
+        get() {
+            Matrix.invertM(field, 0, projectionM, 0)
+            return field
+        }
+
+    private val inverseSRMatrix = createIdentity4Matrix()
+    private val inverseSRTMatrix = createIdentity4Matrix()
+
+    protected val inverseCombinedM: FloatArray = createIdentity4Matrix()
+        get() {
+            // RTS의 역행렬
+            Matrix.multiplyMM(inverseSRMatrix, 0, inverseScaleM, 0, inverseRotateM, 0)
+            Matrix.multiplyMM(inverseSRTMatrix, 0, inverseSRMatrix, 0, inverseTransM, 0)
+            Matrix.multiplyMM(field, 0, inverseSRTMatrix, 0, readOnlyIdentity4Matrix, 0)
+            return field
+        }
+    protected val inverseRotateM: FloatArray = createIdentity4Matrix()
+        get() {
+            Matrix.invertM(field, 0, rotateM, 0)
+            return field
+        }
+    protected val inverseTransM: FloatArray = createIdentity4Matrix()
+        get() {
+            Matrix.invertM(field, 0, transM, 0)
+            return field
+        }
+    protected val inverseScaleM: FloatArray = createIdentity4Matrix()
+        get() {
+            // scale 메트릭스는 역행렬을 만들어 주는 기능이 없어서 직접 구현
+            Matrix.setIdentityM(field, 0)
+            field[0] = 1 / scaleM[0]
+            field[5] = 1 / scaleM[5]
+            field[10] = 1 / scaleM[10]
+            return field
+        }
 
     fun dispatchInit(width: Int, height: Int, newProjectionM: FloatArray) {
         Matrix.multiplyMM(projectionM, 0, newProjectionM, 0, readOnlyIdentity4Matrix, 0)
