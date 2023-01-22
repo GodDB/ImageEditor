@@ -124,6 +124,23 @@ fun createIdentity4Matrix(): FloatArray {
     }
 }
 
+private val _tempIdentity4Matrix = createIdentity4Matrix()
+internal fun getTempIdentity4Matrix(): FloatArray {
+    return _tempIdentity4Matrix.apply {
+        Matrix.setIdentityM(this, 0)
+    }
+}
+
+private val _tempVector3DArray = floatArrayOf(0f, 0f, 0f, 1f)
+internal fun getTempVector3DArray(x: Float, y: Float, z: Float) : FloatArray {
+    return _tempVector3DArray.apply {
+        this[0] = x
+        this[1] = y
+        this[2] = z
+        this[3] = 1f
+    }
+}
+
 val readOnlyIdentity4Matrix = createIdentity4Matrix()
 
 fun FloatArray.isIdentityM(): Boolean {

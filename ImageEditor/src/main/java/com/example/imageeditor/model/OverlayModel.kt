@@ -3,6 +3,7 @@ package com.example.imageeditor.model
 import android.content.Context
 import android.opengl.GLES20
 import android.opengl.Matrix
+import android.util.Log
 import com.example.imageeditor.R
 import com.example.imageeditor.core.shader.Shader
 import com.example.imageeditor.core.shader.ShaderProgram
@@ -13,6 +14,8 @@ import com.example.imageeditor.utils.Vector3D
 import com.example.imageeditor.utils.createIdentity4Matrix
 import com.example.imageeditor.utils.deepCopy
 import com.example.imageeditor.utils.floatBufferOf
+import com.example.imageeditor.utils.getTempIdentity4Matrix
+import com.example.imageeditor.utils.getTempVector3DArray
 import com.example.imageeditor.utils.intBufferOf
 import com.example.imageeditor.utils.runGL
 
@@ -123,8 +126,6 @@ internal class OverlayModel(
         )
     }
 
-    private var isPressed: Boolean = false
-
     override fun init(width: Int, height: Int) {
         contentsModel.init(width, height)
         updateTranslation(contentsModel.transM.deepCopy())
@@ -160,20 +161,23 @@ internal class OverlayModel(
     }
 
     override fun onTouchDown(x: Float, y: Float): Boolean {
-        isPressed = isTouched(x, y)
-        if (isPressed) {
-            contentsModel.onTouchDown(x, y)
+        val controllerTouched = controllerMap.values.any { it.onTouchDown(x, y) }
+        if (controllerTouched) {
+            Log.e("godgod", "controller down")
+            _isPressed = false
+            return controllerTouched
+        } else {
+            _isPressed = isTouched(x, y)
+            Log.e("godgod", "overlay down $isPressed")
+            return isPressed
         }
-        return isPressed
     }
 
     private fun isTouched(x: Float, y: Float): Boolean {
         val inversedCombinedM = createIdentity4Matrix().apply {
-            Matrix.multiplyMM(this, 0, transM, 0, rotateM, 0)
-            Matrix.multiplyMM(this, 0, this, 0, scaleM, 0)
-            Matrix.invertM(this, 0, this, 0)
+            Matrix.invertM(this, 0, combinedMatrix, 0)
         }
-        val notNormalizePoint = floatArrayOf(x, y, 0f, 1f).apply {
+        val notNormalizePoint = getTempVector3DArray(x, y, 0f).apply {
             Matrix.multiplyMV(this, 0, inversedCombinedM, 0, this, 0)
         }
 
@@ -182,18 +186,25 @@ internal class OverlayModel(
     }
 
     override fun onTouchMove(x: Float, y: Float, deltaX: Float, deltaY: Float) {
-        if (!isPressed) return
-        contentsModel.updateTranslation(-deltaX, -deltaY, 0f)
-        updateTranslation(-deltaX, -deltaY, 0f)
-        controllerMap.values.forEach {
-            it.updateTranslation(-deltaX, -deltaY, 0f)
+        val controllerTouched = controllerMap.values.any { it.isPressed }
+        if (controllerTouched) {
+            controllerMap.values.forEach {
+                it.onTouchMove(x, y, deltaX, deltaY)
+            }
+        } else {
+            if (!isPressed) return
+            contentsModel.updateTranslation(-deltaX, -deltaY, 0f)
+            updateTranslation(-deltaX, -deltaY, 0f)
+            controllerMap.values.forEach {
+                it.updateTranslation(-deltaX, -deltaY, 0f)
+            }
         }
     }
 
     override fun onTouchUp() {
-        if (!isPressed) return
+        controllerMap.values.forEach { it.onTouchUp() }
         contentsModel.onTouchUp()
-        isPressed = false
+        _isPressed = false
     }
 }
 

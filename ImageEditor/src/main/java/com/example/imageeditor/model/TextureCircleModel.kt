@@ -11,7 +11,10 @@ import com.example.imageeditor.core.texture.Texture
 import com.example.imageeditor.utils.BitmapUtil
 import com.example.imageeditor.utils.FLOAT_BYTE_SIZE
 import com.example.imageeditor.utils.FileReader
+import com.example.imageeditor.utils.Vector3D
 import com.example.imageeditor.utils.createIdentity4Matrix
+import com.example.imageeditor.utils.getTempIdentity4Matrix
+import com.example.imageeditor.utils.getTempVector3DArray
 import com.example.imageeditor.utils.intBufferOf
 import com.example.imageeditor.utils.runGL
 import com.example.imageeditor.utils.toBuffer
@@ -19,11 +22,27 @@ import com.example.imageeditor.utils.toBuffer
 internal class TextureCircleModel(
     context: Context,
     @DrawableRes imgRes: Int,
-    centerX: Float,
-    centerY: Float,
-    centerZ: Float,
-    private val radius: Float
+    private val centerX: Float,
+    private val centerY: Float,
+    private val centerZ: Float,
+    private val radius: Float,
+    private val onDragEvent : (preesedX : Float, pressedY : Float, moveX : Float, moveY : Float) -> Unit = { _,_,_,_ -> }
 ) : GLESModel() {
+
+    private var _pressedPoint : FloatArray = floatArrayOf(0f, 0f, 0f)
+
+    override val center: Vector3D
+        get() = kotlin.run {
+            val centerVector3D = getTempVector3DArray(centerX, centerY, centerZ)
+            val result = getTempIdentity4Matrix().apply {
+                Matrix.multiplyMV(this, 0, combinedMatrix, 0, centerVector3D, 0)
+            }
+            Vector3D(
+                x = result[0],
+                y = result[1],
+                z = result[2]
+            )
+        }
 
     override val program: ShaderProgram by lazy {
         runGL {
@@ -125,5 +144,38 @@ internal class TextureCircleModel(
 
         runGL { GLES20.glDrawElements(GLES20.GL_TRIANGLE_FAN, circleVertexIndices.capacity(), GLES20.GL_UNSIGNED_INT, circleVertexIndices) }
         runGL { GLES20.glEnableVertexAttribArray(0) } // vertexArray를 비활성화 한다.
+    }
+
+    override fun onTouchDown(x: Float, y: Float): Boolean {
+        _isPressed = isTouched(x, y)
+        if(isPressed) {
+            _pressedPoint[0] = x
+            _pressedPoint[1] = y
+        }
+        return isPressed
+    }
+
+    override fun onTouchMove(x: Float, y: Float, deltaX: Float, deltaY: Float) {
+        if(!isPressed) return
+    }
+
+    override fun onTouchUp() {
+        _isPressed = false
+        _pressedPoint[0] = 0f
+        _pressedPoint[1] = 0f
+    }
+
+    private fun isTouched(x: Float, y: Float): Boolean {
+        val inverseM = createIdentity4Matrix().apply {
+            Matrix.invertM(this, 0, combinedMatrix, 0)
+        }
+        val notnormalizePoint = getTempVector3DArray(x, y, 0f).apply {
+            Matrix.multiplyMV(this, 0, inverseM, 0, this, 0)
+        }
+        val left = centerX - radius
+        val right = centerX + radius
+        val top = centerY + radius
+        val bottom = centerY - radius
+        return notnormalizePoint[0] >= left && notnormalizePoint[0] <= right && notnormalizePoint[1] >= bottom && notnormalizePoint[1] <= top
     }
 }
