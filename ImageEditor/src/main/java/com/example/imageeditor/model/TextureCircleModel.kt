@@ -19,6 +19,7 @@ import com.example.imageeditor.utils.createVector4DArray
 import com.example.imageeditor.utils.intBufferOf
 import com.example.imageeditor.utils.runGL
 import com.example.imageeditor.utils.toBuffer
+import java.nio.FloatBuffer
 import kotlin.math.abs
 
 internal class TextureCircleModel(
@@ -125,11 +126,12 @@ internal class TextureCircleModel(
         updateScale(1f, width / height.toFloat(), 1f)
     }
 
-    override fun draw() {
+    override fun draw(projectionM : FloatBuffer) {
         program.bind()
         texture.bind()
 
         program.updateUniformMatrix4f("u_Model", getCombinedBuffer())
+        program.updateUniformMatrix4f("u_Projection", projectionM)
 
         drawTexture()
         drawCircle()

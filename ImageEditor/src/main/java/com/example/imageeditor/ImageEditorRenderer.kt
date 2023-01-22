@@ -4,12 +4,16 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.PointF
 import android.opengl.GLES20
+import android.opengl.Matrix
 import android.util.Log
 import com.example.imageeditor.core.GLESRenderer
 import com.example.imageeditor.model.GLESModel
 import com.example.imageeditor.model.ImageModel
 import com.example.imageeditor.model.OverlayModel
+import com.example.imageeditor.utils.asBuffer
+import com.example.imageeditor.utils.createIdentity4Matrix
 import com.example.imageeditor.utils.runGL
+import java.nio.FloatBuffer
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
@@ -21,6 +25,9 @@ internal class ImageEditorRenderer(private val context: Context) : GLESRenderer(
     private var glViewHeight: Int = 0
 
     private var pressedPoint: PointF? = null
+
+    private val projectM : FloatArray = createIdentity4Matrix()
+    private val projectBuffer : FloatBuffer = projectM.asBuffer()
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         Log.e("godgod", "onSurfaceCreated")
@@ -34,9 +41,25 @@ internal class ImageEditorRenderer(private val context: Context) : GLESRenderer(
         //  runGL { GLES20.glEnable(GLES20.GL_CULL_FACE) } // 벡터 외적이 후면을 바라보는 부분 제거
         runGL { GLES20.glEnable(GLES20.GL_DEPTH_TEST) } // z버퍼 생성
         runGL { GLES20.glEnable(GLES20.GL_BLEND) } // 알파 채널 적용
+        createProjectionM(glViewWidth, glViewHeight)
 
         models.forEach {
             it.init(glViewWidth, glViewHeight)
+        }
+    }
+
+    private fun createProjectionM(width : Int, height: Int) {
+        val aspectRatio = if (width > height)
+            width.toFloat() / height
+        else
+            height.toFloat() / width
+
+        if (width >= height) {
+            // Landscape
+            Matrix.orthoM(projectM, 0, -aspectRatio, aspectRatio, -1f, 1f, -1f, 1f)
+        } else {
+            // Portrait or square
+            Matrix.orthoM(projectM, 0, -1f, 1f, -aspectRatio, aspectRatio, -1f, 1f)
         }
     }
 
@@ -45,7 +68,7 @@ internal class ImageEditorRenderer(private val context: Context) : GLESRenderer(
         runGL { GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT or GLES20.GL_COLOR_BUFFER_BIT) }
 
         models.forEach {
-            it.draw()
+            it.dispatchDraw(projectBuffer)
         }
     }
 

@@ -17,6 +17,7 @@ import com.example.imageeditor.utils.createIdentity4Matrix
 import com.example.imageeditor.utils.floatBufferOf
 import com.example.imageeditor.utils.intBufferOf
 import com.example.imageeditor.utils.runGL
+import java.nio.FloatBuffer
 import kotlin.math.abs
 
 internal class ImageModel(
@@ -126,11 +127,12 @@ internal class ImageModel(
         return Vector3D(scaleX, scaleY, 1f)
     }
 
-    override fun draw() {
+    override fun draw(projectionM : FloatBuffer) {
         if (!isVisible) return
         program.bind()
         texture.bind()
         program.updateUniformMatrix4f("u_Model", getCombinedBuffer())
+        program.updateUniformMatrix4f("u_Projection", projectionM)
         drawVertices(program)
         drawTexture(program)
         runGL { GLES20.glDrawElements(GLES20.GL_TRIANGLES, vertexIndices.capacity(), GLES20.GL_UNSIGNED_INT, vertexIndices) }

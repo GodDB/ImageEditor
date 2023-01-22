@@ -17,6 +17,7 @@ import com.example.imageeditor.utils.deepCopy
 import com.example.imageeditor.utils.floatBufferOf
 import com.example.imageeditor.utils.intBufferOf
 import com.example.imageeditor.utils.runGL
+import java.nio.FloatBuffer
 import kotlin.math.abs
 import kotlin.math.atan2
 
@@ -177,11 +178,12 @@ internal class OverlayModel(
         }
     }
 
-    override fun draw() {
-        contentsModel.draw()
+    override fun draw(projectionM : FloatBuffer) {
+        contentsModel.dispatchDraw(projectionM)
         if (!isVisible) return
         program.bind()
         program.updateUniformMatrix4f("u_Model", getCombinedBuffer())
+        program.updateUniformMatrix4f("u_Projection", projectionM)
         val vertexPointer = runGL { program.getAttributePointer("v_Position") }
 
         vertices.position(0)
@@ -192,7 +194,7 @@ internal class OverlayModel(
 
         program.unbind()
         controllerMap.values.forEach {
-            it.draw()
+            it.dispatchDraw(projectionM)
         }
     }
 

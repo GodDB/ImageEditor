@@ -51,7 +51,13 @@ internal abstract class GLESModel(
 
     abstract fun init(width: Int, height: Int)
 
-    abstract fun draw()
+    fun dispatchDraw(projectM : FloatBuffer) {
+        program.bind()
+        draw(projectM)
+        program.unbind()
+    }
+
+    protected abstract fun draw(projectM : FloatBuffer)
 
     fun setVisible(visible: Boolean) {
         _isVisible = visible
