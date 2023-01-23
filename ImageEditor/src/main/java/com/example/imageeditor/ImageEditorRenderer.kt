@@ -25,8 +25,9 @@ internal class ImageEditorRenderer(private val context: Context) : GLESRenderer(
     private var glViewHeight: Int = 0
 
     private var pressedPoint: PointF? = null
+    private var movedPoint: PointF? = null
 
-    private val projectM : FloatArray = createIdentity4Matrix()
+    private val projectM: FloatArray = createIdentity4Matrix()
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         Log.e("godgod", "onSurfaceCreated")
@@ -47,7 +48,7 @@ internal class ImageEditorRenderer(private val context: Context) : GLESRenderer(
         }
     }
 
-    private fun createProjectionM(width : Int, height: Int) {
+    private fun createProjectionM(width: Int, height: Int) {
         val aspectRatio = if (width > height)
             width.toFloat() / height
         else
@@ -83,26 +84,28 @@ internal class ImageEditorRenderer(private val context: Context) : GLESRenderer(
     }
 
     fun onTouchDown(x: Float, y: Float) {
-        val normalizeX = ((x / glViewWidth) * 2) - 1
-        val normalizeY = 1 - ((y / glViewHeight) * 2)
-        pressedPoint = PointF(normalizeX, normalizeY)
+        pressedPoint = PointF(x, y)
+        movedPoint = PointF(x, y)
         for (model in models) {
-            if (model.onTouchDown(x, y, normalizeX, normalizeY)) {
+            if (model.onTouchDown(x, y)) {
                 return
             }
         }
     }
 
     fun onTouchMove(x: Float, y: Float) {
-        val normalizeX = ((x / glViewWidth) * 2) - 1
-        val normalizeY = 1 - ((y / glViewHeight) * 2)
         for (model in models) {
-            val deltaX = normalizeX - (pressedPoint?.x ?: 0f)
-            val deltaY = normalizeY - (pressedPoint?.y ?: 0f)
-            model.onTouchMove(x, y, normalizeX, normalizeY, deltaX, deltaY)
+            model.onTouchMove(
+                pressedScreenX = pressedPoint!!.x,
+                pressedScreenY = pressedPoint!!.y,
+                movedScreenX = x,
+                movedScreenY = y,
+                prevMovedScreenX = movedPoint!!.x,
+                prevMovedScreenY = movedPoint!!.y
+            )
         }
-        pressedPoint?.x = normalizeX
-        pressedPoint?.y = normalizeY
+        movedPoint?.x = x
+        movedPoint?.y = y
     }
 
     fun onTouchUp() {
@@ -110,5 +113,6 @@ internal class ImageEditorRenderer(private val context: Context) : GLESRenderer(
             model.onTouchUp()
         }
         pressedPoint = null
+        movedPoint = null
     }
 }

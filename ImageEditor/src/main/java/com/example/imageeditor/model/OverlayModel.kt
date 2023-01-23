@@ -15,6 +15,8 @@ import com.example.imageeditor.utils.createIdentity4Matrix
 import com.example.imageeditor.utils.createVector4DArray
 import com.example.imageeditor.utils.floatBufferOf
 import com.example.imageeditor.utils.intBufferOf
+import com.example.imageeditor.utils.normalizeX
+import com.example.imageeditor.utils.normalizeY
 import com.example.imageeditor.utils.runGL
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -95,8 +97,8 @@ internal class OverlayModel(
         }
     }
 
-    private val scaleControlDragEventHandler: (Float, Float, Float, Float, Float, Float) -> Unit = { prevX, _, _, _, deltaX, _ ->
-        val scale = 1 + (deltaX / prevX)
+    private val scaleControlDragEventHandler: (Float, Float, Float, Float, Float, Float) -> Unit = { pressedScreenX : Float, pressedScreenY : Float, movedScreenX : Float, movedScreenY : Float, prevMovedScreenX : Float, prevMovedScreenY : Float ->
+       /* val scale = 1 + (deltaX / prevX)
         contentsModel.updateScale(scale, scale, 0f)
         this.updateScale(scale, scale, 0f)
         val localModelMatrix = modelM
@@ -105,14 +107,14 @@ internal class OverlayModel(
                 Matrix.multiplyMV(this, 0, localModelMatrix, 0, key.directionVector.array, 0)
             }
             value.setTranslation(newVector[0], newVector[1], newVector[2])
-        }
+        }*/
     }
 
     private var prevRadian: Float? = null
     private var rotateCorrectValue : Float = 100f // rotation 보정값, GL은 -1, 1 사이의 좌표값을 가지고 있기 때문에 이 값으로 두 점의 각도를 구하기엔 너무나 값의 변화량이 작기에 보정값을 더해 정확도를 올린다.
 
-    private val rotateControlDragEventHandler: (Float, Float, Float, Float, Float, Float) -> Unit = { prevX, prevY, curX, curY, deltaX, deltaY ->
-        if (prevRadian == null) {
+    private val rotateControlDragEventHandler: (Float, Float, Float, Float, Float, Float) -> Unit = { pressedScreenX : Float, pressedScreenY : Float, movedScreenX : Float, movedScreenY : Float, prevMovedScreenX : Float, prevMovedScreenY : Float ->
+       /* if (prevRadian == null) {
             prevRadian = atan2(curY * rotateCorrectValue - center.y, curX * rotateCorrectValue - center.x)
         }
         val radian = atan2(curY * rotateCorrectValue - center.y, curX * rotateCorrectValue  - center.x)
@@ -127,7 +129,7 @@ internal class OverlayModel(
                 Matrix.multiplyMV(this, 0, localModelMatrix, 0, key.directionVector.array, 0)
             }
             value.setTranslation(newVector[0], newVector[1], newVector[2])
-        }
+        }*/
     }
 
     private val controllerMap by lazy {
@@ -199,14 +201,14 @@ internal class OverlayModel(
         }
     }
 
-    override fun onTouchDown(rawX : Float, rawY : Float, normalizeX: Float, normalizeY: Float): Boolean {
-        val controllerTouched = controllerMap.values.any { it.onTouchDown(rawX, rawY, normalizeX, normalizeY) }
+    override fun onTouchDown(screenX: Float, screenY: Float): Boolean {
+        val controllerTouched = controllerMap.values.any { it.onTouchDown(screenX, screenY) }
         if (controllerTouched) {
             Log.e("godgod", "controller down")
             _isPressed = false
             return controllerTouched
         } else {
-            _isPressed = isTouched(normalizeX, normalizeY)
+            _isPressed = isTouched(normalizeX(screenX, glWidth), normalizeY(screenY, glHeight))
             Log.e("godgod", "overlay down $isPressed")
             return isPressed
         }
@@ -222,14 +224,17 @@ internal class OverlayModel(
         return notNormalX >= -1 && notNormalX <= 1 && notNormalY >= -1 && notNormalY <= 1
     }
 
-    override fun onTouchMove(rawX : Float, rawY : Float, normalizeX: Float, normalizeY: Float, normalizeDeltaX: Float, normalizeDeltaY: Float) {
+    override fun onTouchMove(pressedScreenX : Float, pressedScreenY : Float, movedScreenX : Float, movedScreenY : Float, prevMovedScreenX : Float, prevMovedScreenY : Float) {
         val controllerTouched = controllerMap.values.any { it.isPressed }
         if (controllerTouched) {
             controllerMap.values.forEach {
-                it.onTouchMove(rawX, rawY, normalizeX, normalizeY, normalizeDeltaX, normalizeDeltaY)
+                it.onTouchMove(pressedScreenX, pressedScreenY, movedScreenX, movedScreenY, prevMovedScreenX, prevMovedScreenY)
             }
         } else {
             if (!isPressed) return
+            val normalizeDeltaX = normalizeX(movedScreenX, glWidth) - normalizeX(prevMovedScreenX, glWidth)
+            val normalizeDeltaY = normalizeY(movedScreenY, glHeight) - normalizeY(prevMovedScreenY, glHeight)
+            Log.e("godgod", "${normalizeDeltaX}   ${normalizeDeltaY}")
             contentsModel.updateTranslation(normalizeDeltaX, normalizeDeltaY, 0f)
             updateTranslation(normalizeDeltaX, normalizeDeltaY, 0f)
             controllerMap.values.forEach {

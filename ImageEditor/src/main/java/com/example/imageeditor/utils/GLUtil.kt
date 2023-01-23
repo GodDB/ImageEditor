@@ -124,7 +124,7 @@ fun createIdentity4Matrix(): FloatArray {
     }
 }
 
-fun createVector4DArray(x : Float, y : Float, z : Float) : FloatArray {
+fun createVector4DArray(x: Float, y: Float, z: Float): FloatArray {
     return floatArrayOf(x, y, z, 1f)
 }
 
@@ -151,4 +151,12 @@ inline fun <T> runGL(block: () -> T): T {
         throw RuntimeException(msg)
     }
     return result
+}
+
+internal fun normalizeX(screenX: Float, glViewWidth: Int): Float {
+    return ((screenX / glViewWidth) * 2) - 1
+}
+
+internal fun normalizeY(screenY: Float, glViewHeight: Int): Float {
+    return 1 - ((screenY / glViewHeight) * 2)
 }

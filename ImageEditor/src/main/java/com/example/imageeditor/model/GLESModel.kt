@@ -52,6 +52,9 @@ internal abstract class GLESModel(
     val isPressed: Boolean
         get() = _isPressed
 
+    protected var glWidth : Int = 0
+    protected var glHeight : Int = 0
+
     val projectionM: FloatArray = createIdentity4Matrix()
     val projectionBuffer: FloatBuffer = projectionM.asBuffer()
 
@@ -99,6 +102,8 @@ internal abstract class GLESModel(
         }
 
     fun dispatchInit(width: Int, height: Int, newProjectionM: FloatArray) {
+        glWidth = width
+        glHeight = height
         Matrix.multiplyMM(projectionM, 0, newProjectionM, 0, readOnlyIdentity4Matrix, 0)
         init(width, height)
     }
@@ -115,11 +120,11 @@ internal abstract class GLESModel(
         _isVisible = visible
     }
 
-    open fun onTouchDown(rawX: Float, rawY: Float, normalizeX: Float, normalizeY: Float): Boolean {
+    open fun onTouchDown(screenX: Float, screenY: Float): Boolean {
         return false
     }
 
-    open fun onTouchMove(rawX: Float, rawY: Float, normalizeX: Float, normalizeY: Float, normalizeDeltaX: Float, normalizeDeltaY: Float) {
+    open fun onTouchMove(pressedScreenX : Float, pressedScreenY : Float, movedScreenX : Float, movedScreenY : Float, prevMovedScreenX : Float, prevMovedScreenY : Float) {
 
     }
 

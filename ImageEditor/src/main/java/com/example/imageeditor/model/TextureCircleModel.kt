@@ -16,6 +16,8 @@ import com.example.imageeditor.utils.Vector3D
 import com.example.imageeditor.utils.createIdentity4Matrix
 import com.example.imageeditor.utils.createVector4DArray
 import com.example.imageeditor.utils.intBufferOf
+import com.example.imageeditor.utils.normalizeX
+import com.example.imageeditor.utils.normalizeY
 import com.example.imageeditor.utils.runGL
 import com.example.imageeditor.utils.toBuffer
 import kotlin.math.abs
@@ -27,7 +29,7 @@ internal class TextureCircleModel(
     private val centerY: Float,
     private val centerZ: Float,
     private val radius: Float,
-    private val onDragEvent: (prevX: Float, prevY: Float, curX: Float, curY: Float, deltaX: Float, deltaY: Float) -> Unit = { _, _, _, _, _, _ -> }
+    private val onDragEvent: (pressedScreenX : Float, pressedScreenY : Float, movedScreenX : Float, movedScreenY : Float, prevMovedScreenX : Float, prevMovedScreenY : Float) -> Unit = { _, _, _, _, _, _ -> }
 ) : GLESModel() {
 
     private val leftCenterVector3D = Vector3D(centerX - radius, centerY, centerZ)
@@ -169,16 +171,14 @@ internal class TextureCircleModel(
         runGL { GLES20.glEnableVertexAttribArray(0) } // vertexArray를 비활성화 한다.
     }
 
-    override fun onTouchDown(rawX : Float, rawY : Float, normalizeX: Float, normalizeY: Float): Boolean {
-        _isPressed = isTouched(normalizeX, normalizeY)
+    override fun onTouchDown(screenX: Float, screenY: Float): Boolean {
+        _isPressed = isTouched(normalizeX(screenX, glWidth), normalizeY(screenY, glHeight))
         return isPressed
     }
 
-    override fun onTouchMove(rawX : Float, rawY : Float, normalizeX: Float, normalizeY: Float, normalizeDeltaX: Float, normalizeDeltaY: Float) {
+    override fun onTouchMove(pressedScreenX : Float, pressedScreenY : Float, movedScreenX : Float, movedScreenY : Float, prevMovedScreenX : Float, prevMovedScreenY : Float) {
         if (!isPressed) return
-        val prevX = normalizeX - normalizeDeltaX
-        val prevY = normalizeY - normalizeDeltaY
-        onDragEvent.invoke(prevX, prevY, normalizeX, normalizeY, normalizeDeltaX, normalizeDeltaY)
+        onDragEvent.invoke(pressedScreenX, pressedScreenY, movedScreenX, movedScreenY, prevMovedScreenX, prevMovedScreenY)
     }
 
     override fun onTouchUp() {
