@@ -16,7 +16,6 @@ import com.example.imageeditor.utils.createIdentity4Matrix
 import com.example.imageeditor.utils.floatBufferOf
 import com.example.imageeditor.utils.intBufferOf
 import com.example.imageeditor.utils.runGL
-import java.nio.FloatBuffer
 import kotlin.math.abs
 
 internal class ImageModel(
@@ -53,15 +52,15 @@ internal class ImageModel(
 
     override val size: Size
         get() = kotlin.run {
-            val localCombinedMatrix = getCombinedMatrix()
+            val localModelMatrix = modelM
             val leftTop = createIdentity4Matrix().apply {
-                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, topLeftVector3D.array, 0)
+                Matrix.multiplyMV(this, 0, localModelMatrix, 0, topLeftVector3D.array, 0)
             }
             val leftBottom = createIdentity4Matrix().apply {
-                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, bottomLeftVector3D.array, 0)
+                Matrix.multiplyMV(this, 0, localModelMatrix, 0, bottomLeftVector3D.array, 0)
             }
             val rightTop = createIdentity4Matrix().apply {
-                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, topRightVector3D.array, 0)
+                Matrix.multiplyMV(this, 0, localModelMatrix, 0, topRightVector3D.array, 0)
             }
             Size(
                 width = abs(rightTop[0]) + abs(leftTop[0]),
@@ -71,15 +70,15 @@ internal class ImageModel(
 
     override val center: Vector3D
         get() = kotlin.run {
-            val localCombinedMatrix = getCombinedMatrix()
+            val localModelMatrix = modelM
             val leftTop = createIdentity4Matrix().apply {
-                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, topLeftVector3D.array, 0)
+                Matrix.multiplyMV(this, 0, localModelMatrix, 0, topLeftVector3D.array, 0)
             }
             val leftBottom = createIdentity4Matrix().apply {
-                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, bottomLeftVector3D.array, 0)
+                Matrix.multiplyMV(this, 0, localModelMatrix, 0, bottomLeftVector3D.array, 0)
             }
             val rightTop = createIdentity4Matrix().apply {
-                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, topRightVector3D.array, 0)
+                Matrix.multiplyMV(this, 0, localModelMatrix, 0, topRightVector3D.array, 0)
             }
 
             Vector3D(
@@ -114,7 +113,7 @@ internal class ImageModel(
         if (!isVisible) return
         program.bind()
         texture.bind()
-        program.updateUniformMatrix4f("u_Model", getCombinedBuffer())
+        program.updateUniformMatrix4f("u_Model", modelMBuffer)
         program.updateUniformMatrix4f("u_Projection", projectionBuffer)
         drawVertices(program)
         drawTexture(program)

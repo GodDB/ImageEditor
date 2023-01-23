@@ -13,13 +13,11 @@ import com.example.imageeditor.utils.FLOAT_BYTE_SIZE
 import com.example.imageeditor.utils.FileReader
 import com.example.imageeditor.utils.Size
 import com.example.imageeditor.utils.Vector3D
-import com.example.imageeditor.utils.asBuffer
 import com.example.imageeditor.utils.createIdentity4Matrix
 import com.example.imageeditor.utils.createVector4DArray
 import com.example.imageeditor.utils.intBufferOf
 import com.example.imageeditor.utils.runGL
 import com.example.imageeditor.utils.toBuffer
-import java.nio.FloatBuffer
 import kotlin.math.abs
 
 internal class TextureCircleModel(
@@ -40,18 +38,18 @@ internal class TextureCircleModel(
 
     override val size: Size
         get() = kotlin.run {
-            val localCombinedMatrix = getCombinedMatrix()
+            val localModelMatrix = modelM
             val leftCenter = createIdentity4Matrix().apply {
-                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, leftCenterVector3D.array, 0)
+                Matrix.multiplyMV(this, 0, localModelMatrix, 0, leftCenterVector3D.array, 0)
             }
             val bottomCenter = createIdentity4Matrix().apply {
-                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, bottomCenterVector3D.array, 0)
+                Matrix.multiplyMV(this, 0, localModelMatrix, 0, bottomCenterVector3D.array, 0)
             }
             val rightCenter = createIdentity4Matrix().apply {
-                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, rightCenterVector3D.array, 0)
+                Matrix.multiplyMV(this, 0, localModelMatrix, 0, rightCenterVector3D.array, 0)
             }
             val topCenter = createIdentity4Matrix().apply {
-                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, topCenterVector3D.array, 0)
+                Matrix.multiplyMV(this, 0, localModelMatrix, 0, topCenterVector3D.array, 0)
             }
             Size(
                 width = abs(rightCenter[0]) + abs(leftCenter[0]),
@@ -62,7 +60,7 @@ internal class TextureCircleModel(
     override val center: Vector3D
         get() = kotlin.run {
             val localcenter = createIdentity4Matrix().apply {
-                Matrix.multiplyMV(this, 0, getCombinedMatrix(), 0 , centerVector3D.array, 0)
+                Matrix.multiplyMV(this, 0, modelM, 0 , centerVector3D.array, 0)
             }
             Vector3D(
                 x = localcenter[0],
@@ -129,7 +127,7 @@ internal class TextureCircleModel(
         program.bind()
         texture.bind()
 
-        program.updateUniformMatrix4f("u_Model", getCombinedBuffer())
+        program.updateUniformMatrix4f("u_Model", modelMBuffer)
         program.updateUniformMatrix4f("u_Projection", projectionBuffer)
 
         drawTexture()
@@ -189,7 +187,7 @@ internal class TextureCircleModel(
 
     private fun isTouched(x: Float, y: Float): Boolean {
         val allCombinedM = createIdentity4Matrix().apply {
-            Matrix.multiplyMM(this, 0, inverseCombinedM, 0, inverseProjectionM, 0)
+            Matrix.multiplyMM(this, 0, inverseModelM, 0, inverseProjectionM, 0)
         }
         val notnormalizePoint = createVector4DArray(x, y, 0f).apply {
             Matrix.multiplyMV(this, 0, allCombinedM, 0, this, 0)

@@ -15,23 +15,22 @@ internal abstract class GLESModel(
     protected val transM: FloatArray = createIdentity4Matrix(),
     protected val rotateM: FloatArray = createIdentity4Matrix()
 ) {
-    private val combinedMatrix: FloatArray = createIdentity4Matrix()
-    private val combinedBuffer: FloatBuffer = combinedMatrix.asBuffer()
 
     private val TRMatrix: FloatArray = createIdentity4Matrix()
     private val TRSMatrix: FloatArray = createIdentity4Matrix()
-    protected fun getCombinedMatrix(): FloatArray {
-        return this.combinedMatrix.apply {
+    protected val modelM: FloatArray = createIdentity4Matrix()
+        get() {
             Matrix.multiplyMM(TRMatrix, 0, transM, 0, rotateM, 0)
             Matrix.multiplyMM(TRSMatrix, 0, TRMatrix, 0, scaleM, 0)
-            Matrix.multiplyMM(this, 0, TRSMatrix, 0, readOnlyIdentity4Matrix, 0)
+            Matrix.multiplyMM(field, 0, TRSMatrix, 0, readOnlyIdentity4Matrix, 0)
+            return field
         }
-    }
 
-    protected fun getCombinedBuffer(): FloatBuffer {
-        getCombinedMatrix()
-        return combinedBuffer
-    }
+    protected val modelMBuffer: FloatBuffer = modelM.asBuffer()
+        get() {
+            modelM
+            return field
+        }
 
     open val size: Size
         get() = throw UnsupportedOperationException("not supported")
@@ -60,7 +59,13 @@ internal abstract class GLESModel(
     private val inverseSRMatrix = createIdentity4Matrix()
     private val inverseSRTMatrix = createIdentity4Matrix()
 
-    protected val inverseCombinedM: FloatArray = createIdentity4Matrix()
+    protected val inverseProjectionModelM: FloatArray = createIdentity4Matrix()
+        get() {
+            Matrix.multiplyMM(field, 0, inverseModelM, 0, inverseProjectionM, 0)
+            return field
+        }
+
+    protected val inverseModelM: FloatArray = createIdentity4Matrix()
         get() {
             // RTS의 역행렬
             Matrix.multiplyMM(inverseSRMatrix, 0, inverseScaleM, 0, inverseRotateM, 0)
@@ -105,11 +110,11 @@ internal abstract class GLESModel(
         _isVisible = visible
     }
 
-    open fun onTouchDown(rawX : Float, rawY : Float, normalizeX: Float, normalizeY: Float): Boolean {
+    open fun onTouchDown(rawX: Float, rawY: Float, normalizeX: Float, normalizeY: Float): Boolean {
         return false
     }
 
-    open fun onTouchMove(rawX : Float, rawY : Float, normalizeX: Float, normalizeY: Float, normalizeDeltaX: Float, normalizeDeltaY: Float) {
+    open fun onTouchMove(rawX: Float, rawY: Float, normalizeX: Float, normalizeY: Float, normalizeDeltaX: Float, normalizeDeltaY: Float) {
 
     }
 

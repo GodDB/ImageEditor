@@ -13,11 +13,9 @@ import com.example.imageeditor.utils.Size
 import com.example.imageeditor.utils.Vector3D
 import com.example.imageeditor.utils.createIdentity4Matrix
 import com.example.imageeditor.utils.createVector4DArray
-import com.example.imageeditor.utils.deepCopy
 import com.example.imageeditor.utils.floatBufferOf
 import com.example.imageeditor.utils.intBufferOf
 import com.example.imageeditor.utils.runGL
-import java.nio.FloatBuffer
 import kotlin.math.abs
 import kotlin.math.atan2
 
@@ -42,15 +40,15 @@ internal class OverlayModel(
 
     override val size: Size
         get() = kotlin.run {
-            val localCombinedMatrix = getCombinedMatrix()
+            val localModelMatrix = modelM
             val leftTop = createIdentity4Matrix().apply {
-                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, topLeftVector3D.array, 0)
+                Matrix.multiplyMV(this, 0, localModelMatrix, 0, topLeftVector3D.array, 0)
             }
             val leftBottom = createIdentity4Matrix().apply {
-                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, bottomLeftVector3D.array, 0)
+                Matrix.multiplyMV(this, 0, localModelMatrix, 0, bottomLeftVector3D.array, 0)
             }
             val rightTop = createIdentity4Matrix().apply {
-                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, topRightVector3D.array, 0)
+                Matrix.multiplyMV(this, 0, localModelMatrix, 0, topRightVector3D.array, 0)
             }
             Size(
                 width = abs(rightTop[0]) + abs(leftTop[0]),
@@ -60,15 +58,15 @@ internal class OverlayModel(
 
     override val center: Vector3D
         get() = kotlin.run {
-            val localCombinedMatrix = getCombinedMatrix()
+            val localModelMatrix = modelM
             val leftTop = createIdentity4Matrix().apply {
-                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, topLeftVector3D.array, 0)
+                Matrix.multiplyMV(this, 0, localModelMatrix, 0, topLeftVector3D.array, 0)
             }
             val leftBottom = createIdentity4Matrix().apply {
-                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, bottomLeftVector3D.array, 0)
+                Matrix.multiplyMV(this, 0, localModelMatrix, 0, bottomLeftVector3D.array, 0)
             }
             val rightTop = createIdentity4Matrix().apply {
-                Matrix.multiplyMV(this, 0, localCombinedMatrix, 0, topRightVector3D.array, 0)
+                Matrix.multiplyMV(this, 0, localModelMatrix, 0, topRightVector3D.array, 0)
             }
 
             Vector3D(
@@ -101,30 +99,34 @@ internal class OverlayModel(
         val scale = 1 + (deltaX / prevX)
         contentsModel.updateScale(scale, scale, 0f)
         this.updateScale(scale, scale, 0f)
+        val localModelMatrix = modelM
         controllerMap.forEach { key, value ->
             val newVector = createVector4DArray(0f, 0f, 0f).apply {
-                Matrix.multiplyMV(this, 0, getCombinedMatrix(), 0, key.directionVector.array, 0)
+                Matrix.multiplyMV(this, 0, localModelMatrix, 0, key.directionVector.array, 0)
             }
             value.setTranslation(newVector[0], newVector[1], newVector[2])
         }
     }
 
     private var prevRadian: Float? = null
+    private var rotateCorrectValue : Float = 100f // rotation 보정값, GL은 -1, 1 사이의 좌표값을 가지고 있기 때문에 이 값으로 두 점의 각도를 구하기엔 너무나 값의 변화량이 작기에 보정값을 더해 정확도를 올린다.
 
     private val rotateControlDragEventHandler: (Float, Float, Float, Float, Float, Float) -> Unit = { prevX, prevY, curX, curY, deltaX, deltaY ->
         if (prevRadian == null) {
-            val center = controllerMap.get(ControllerType.ROTATE)!!.center
-            prevRadian = atan2(center.y, center.x)
+            prevRadian = atan2(curY * rotateCorrectValue - center.y, curX * rotateCorrectValue - center.x)
+            Log.e("godgod", "prevRadian $prevRadian")
         }
-        val radian = atan2(curY - center.y, curX - center.x)
+        val radian = atan2(curY * rotateCorrectValue - center.y, curX * rotateCorrectValue  - center.x)
         val newRadian = radian - prevRadian!!
+        Log.e("godgod", "curRadian $radian   newRadian $newRadian")
         prevRadian = radian
         val degree = Math.toDegrees(newRadian.toDouble())
         contentsModel.updateRotation(degree.toFloat(), 0f, 0f, 1f)
         this.updateRotation(degree.toFloat(), 0f, 0f, 1f)
+        val localModelMatrix = modelM
         controllerMap.forEach { key, value ->
             val newVector = createVector4DArray(0f, 0f, 0f).apply {
-                Matrix.multiplyMV(this, 0, getCombinedMatrix(), 0, key.directionVector.array, 0)
+                Matrix.multiplyMV(this, 0, localModelMatrix, 0, key.directionVector.array, 0)
             }
             value.setTranslation(newVector[0], newVector[1], newVector[2])
         }
@@ -168,11 +170,12 @@ internal class OverlayModel(
         updateRotation(contentsModel.getCopiedRotateM())
         updateScale(contentsModel.getCopiedScaleM())
         updateScale(1.1f, 1.2f, 1f)
+        val localModelMatrix = modelM
         controllerMap.forEach { key, value ->
             value.dispatchInit(width, height, projectionM)
             value.updateScale(0.1f, 0.1f, 0.1f)
             val newVector = createVector4DArray(0f, 0f, 0f).apply {
-                Matrix.multiplyMV(this, 0, getCombinedMatrix(), 0, key.directionVector.array, 0)
+                Matrix.multiplyMV(this, 0, localModelMatrix, 0, key.directionVector.array, 0)
             }
             value.setTranslation(newVector[0], newVector[1], newVector[2])
         }
@@ -182,7 +185,7 @@ internal class OverlayModel(
         contentsModel.dispatchDraw()
         if (!isVisible) return
         program.bind()
-        program.updateUniformMatrix4f("u_Model", getCombinedBuffer())
+        program.updateUniformMatrix4f("u_Model", modelMBuffer)
         program.updateUniformMatrix4f("u_Projection", projectionBuffer)
         val vertexPointer = runGL { program.getAttributePointer("v_Position") }
 
@@ -213,7 +216,7 @@ internal class OverlayModel(
 
     private fun isTouched(x: Float, y: Float): Boolean {
         val allCombinedM = createIdentity4Matrix().apply {
-            Matrix.multiplyMM(this, 0, inverseCombinedM, 0, inverseProjectionM, 0)
+            Matrix.multiplyMM(this, 0, inverseModelM, 0, inverseProjectionM, 0)
         }
 
         val notNormalizePoint = createVector4DArray(x, y, 0f).apply {
@@ -243,6 +246,7 @@ internal class OverlayModel(
     override fun onTouchUp() {
         controllerMap.values.forEach { it.onTouchUp() }
         contentsModel.onTouchUp()
+        prevRadian = null
         _isPressed = false
     }
 }
