@@ -186,11 +186,8 @@ internal class TextureCircleModel(
     }
 
     private fun isTouched(x: Float, y: Float): Boolean {
-        val allCombinedM = createIdentity4Matrix().apply {
-            Matrix.multiplyMM(this, 0, inverseModelM, 0, inverseProjectionM, 0)
-        }
         val notnormalizePoint = createVector4DArray(x, y, 0f).apply {
-            Matrix.multiplyMV(this, 0, allCombinedM, 0, this, 0)
+            Matrix.multiplyMV(this, 0, inverseProjectionModelM, 0, this, 0)
         }
         val left = centerX - radius
         val right = centerX + radius

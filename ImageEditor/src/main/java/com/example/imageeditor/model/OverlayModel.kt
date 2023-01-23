@@ -114,11 +114,9 @@ internal class OverlayModel(
     private val rotateControlDragEventHandler: (Float, Float, Float, Float, Float, Float) -> Unit = { prevX, prevY, curX, curY, deltaX, deltaY ->
         if (prevRadian == null) {
             prevRadian = atan2(curY * rotateCorrectValue - center.y, curX * rotateCorrectValue - center.x)
-            Log.e("godgod", "prevRadian $prevRadian")
         }
         val radian = atan2(curY * rotateCorrectValue - center.y, curX * rotateCorrectValue  - center.x)
         val newRadian = radian - prevRadian!!
-        Log.e("godgod", "curRadian $radian   newRadian $newRadian")
         prevRadian = radian
         val degree = Math.toDegrees(newRadian.toDouble())
         contentsModel.updateRotation(degree.toFloat(), 0f, 0f, 1f)
