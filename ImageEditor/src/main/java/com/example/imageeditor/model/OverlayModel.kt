@@ -213,8 +213,9 @@ internal class OverlayModel(
     }
 
     private fun isTouched(x: Float, y: Float): Boolean {
-        val notNormalizePoint = createVector4DArray(x, y, 0f).apply {
-            Matrix.multiplyMV(this, 0, inverseProjectionModelM, 0, this, 0)
+        val notNormalizePoint = createVector4DArray(0f, 0f, 0f).apply {
+            val point = createVector4DArray(x, y, 0f)
+            Matrix.multiplyMV(this, 0, inverseProjectionModelM, 0, point, 0)
         }
 
         val (notNormalX, notNormalY) = notNormalizePoint
