@@ -7,6 +7,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
 import java.nio.IntBuffer
+import kotlin.math.abs
 
 const val INT_BYTE_SIZE = 4
 const val FLOAT_BYTE_SIZE = 4
@@ -160,3 +161,30 @@ internal fun normalizeX(screenX: Float, glViewWidth: Int): Float {
 internal fun normalizeY(screenY: Float, glViewHeight: Int): Float {
     return 1 - ((screenY / glViewHeight) * 2)
 }
+
+internal fun denormalizeX(normalizeX : Float, glViewWidth: Int) : Float {
+    return (normalizeX + 1) / 2 * glViewWidth
+}
+
+internal fun denormalizeY(normalizeY : Float, glViewHeight: Int ) : Float {
+    return (-normalizeY + 1) / 2 * glViewHeight
+}
+
+/**
+ *  receiver로 전달받은 수와, 인자로 전달받은 수 중에 누가 더 targetValue에 가까운지 추려낸다
+ * return -1 : receiver수가 더 가깝다
+ * return 1 : receiver수가 더 멀다
+ * return 0 : 둘이 같다.
+ */
+internal fun Float.isNear(targetValue : Float, compareValue : Float) : Int {
+    val value1 = abs(targetValue - this)
+    val value2 = abs(targetValue - compareValue )
+    return when {
+        value1 < value2 -> -1
+        value1 > value2 -> 1
+        else -> 0
+    }.also {
+        Log.e("godgod", "$it")
+    }
+}
+
