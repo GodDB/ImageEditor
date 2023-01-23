@@ -25,6 +25,11 @@ internal abstract class GLESModel(
             Matrix.multiplyMM(field, 0, TRSMatrix, 0, readOnlyIdentity4Matrix, 0)
             return field
         }
+    protected val projectionModelM: FloatArray = createIdentity4Matrix()
+        get() {
+            Matrix.multiplyMM(field, 0, projectionM, 0, modelM, 0)
+            return field
+        }
 
     protected val modelMBuffer: FloatBuffer = modelM.asBuffer()
         get() {
