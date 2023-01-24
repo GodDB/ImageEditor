@@ -133,15 +133,18 @@ internal abstract class GLESModel(
     }
 
     fun updateTranslation(newTransM: FloatArray) {
-        Matrix.multiplyMM(transM, 0, newTransM, 0, readOnlyIdentity4Matrix, 0)
+        val tempTransM = transM.deepCopy()
+        Matrix.multiplyMM(transM, 0, tempTransM, 0, newTransM, 0)
     }
 
     fun updateRotation(newRotateM: FloatArray) {
-        Matrix.multiplyMM(rotateM, 0, newRotateM, 0, readOnlyIdentity4Matrix, 0)
+        val tempRotateM = rotateM.deepCopy()
+        Matrix.multiplyMM(rotateM, 0, tempRotateM, 0, newRotateM, 0)
     }
 
     fun updateScale(newScaleM: FloatArray) {
-        Matrix.multiplyMM(scaleM, 0, newScaleM, 0, readOnlyIdentity4Matrix, 0)
+        val tempScaleM = rotateM.deepCopy()
+        Matrix.multiplyMM(scaleM, 0, tempScaleM, 0, newScaleM, 0)
     }
 
     fun updateTranslation(x: Float, y: Float, z: Float) {
