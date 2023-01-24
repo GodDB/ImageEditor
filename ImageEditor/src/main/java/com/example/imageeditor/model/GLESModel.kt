@@ -143,7 +143,7 @@ internal abstract class GLESModel(
     }
 
     fun updateScale(newScaleM: FloatArray) {
-        val tempScaleM = rotateM.deepCopy()
+        val tempScaleM = scaleM.deepCopy()
         Matrix.multiplyMM(scaleM, 0, tempScaleM, 0, newScaleM, 0)
     }
 
