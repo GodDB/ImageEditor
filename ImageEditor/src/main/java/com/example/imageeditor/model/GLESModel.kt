@@ -1,6 +1,7 @@
 package com.example.imageeditor.model
 
 import android.opengl.Matrix
+import android.util.Log
 import com.example.imageeditor.core.shader.ShaderProgram
 import com.example.imageeditor.utils.Size
 import com.example.imageeditor.utils.Vector3D
@@ -60,7 +61,7 @@ internal abstract class GLESModel(
 
     protected val inverseProjectionM: FloatArray = createIdentity4Matrix()
         get() {
-            Matrix.invertM(field, 0, projectionM, 0)
+            if(!Matrix.invertM(field, 0, projectionM, 0)) throw java.lang.RuntimeException("not inversed project matrix")
             return field
         }
 
@@ -83,12 +84,12 @@ internal abstract class GLESModel(
         }
     protected val inverseRotateM: FloatArray = createIdentity4Matrix()
         get() {
-            Matrix.invertM(field, 0, rotateM, 0)
+            if(!Matrix.invertM(field, 0, rotateM, 0)) throw java.lang.RuntimeException("not inversed rotate matrix")
             return field
         }
     protected val inverseTransM: FloatArray = createIdentity4Matrix()
         get() {
-            Matrix.invertM(field, 0, transM, 0)
+            if(!Matrix.invertM(field, 0, transM, 0)) throw java.lang.RuntimeException("not inversed transform matrix")
             return field
         }
     protected val inverseScaleM: FloatArray = createIdentity4Matrix()

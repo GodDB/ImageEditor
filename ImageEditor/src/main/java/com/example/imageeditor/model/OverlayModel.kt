@@ -60,7 +60,9 @@ internal class OverlayModel(
 
     override val center: Vector3D
         get() = kotlin.run {
-            val localModelMatrix = modelM
+            val localModelMatrix = createIdentity4Matrix().apply {
+                Matrix.multiplyMM(this, 0, projectionM, 0, transM, 0)
+            }
             val leftTop = createIdentity4Matrix().apply {
                 Matrix.multiplyMV(this, 0, localModelMatrix, 0, topLeftVector3D.array, 0)
             }
@@ -97,40 +99,43 @@ internal class OverlayModel(
         }
     }
 
-    private val scaleControlDragEventHandler: (Float, Float, Float, Float, Float, Float) -> Unit = { pressedScreenX : Float, pressedScreenY : Float, movedScreenX : Float, movedScreenY : Float, prevMovedScreenX : Float, prevMovedScreenY : Float ->
-       /* val scale = 1 + (deltaX / prevX)
-        contentsModel.updateScale(scale, scale, 0f)
-        this.updateScale(scale, scale, 0f)
-        val localModelMatrix = modelM
-        controllerMap.forEach { key, value ->
-            val newVector = createVector4DArray(0f, 0f, 0f).apply {
-                Matrix.multiplyMV(this, 0, localModelMatrix, 0, key.directionVector.array, 0)
-            }
-            value.setTranslation(newVector[0], newVector[1], newVector[2])
-        }*/
-    }
+    private val scaleControlDragEventHandler: (Float, Float, Float, Float, Float, Float) -> Unit =
+        { pressedScreenX: Float, pressedScreenY: Float, movedScreenX: Float, movedScreenY: Float, prevMovedScreenX: Float, prevMovedScreenY: Float ->
+            /* val scale = 1 + (deltaX / prevX)
+             contentsModel.updateScale(scale, scale, 0f)
+             this.updateScale(scale, scale, 0f)
+             val localModelMatrix = modelM
+             controllerMap.forEach { key, value ->
+                 val newVector = createVector4DArray(0f, 0f, 0f).apply {
+                     Matrix.multiplyMV(this, 0, localModelMatrix, 0, key.directionVector.array, 0)
+                 }
+                 value.setTranslation(newVector[0], newVector[1], newVector[2])
+             }*/
+        }
 
     private var prevRadian: Float? = null
-    private var rotateCorrectValue : Float = 100f // rotation 보정값, GL은 -1, 1 사이의 좌표값을 가지고 있기 때문에 이 값으로 두 점의 각도를 구하기엔 너무나 값의 변화량이 작기에 보정값을 더해 정확도를 올린다.
+    private var rotateCorrectValue: Float = 100f // rotation 보정값, GL은 -1, 1 사이의 좌표값을 가지고 있기 때문에 이 값으로 두 점의 각도를 구하기엔 너무나 값의 변화량이 작기에 보정값을 더해 정확도를 올린다.
 
-    private val rotateControlDragEventHandler: (Float, Float, Float, Float, Float, Float) -> Unit = { pressedScreenX : Float, pressedScreenY : Float, movedScreenX : Float, movedScreenY : Float, prevMovedScreenX : Float, prevMovedScreenY : Float ->
-       /* if (prevRadian == null) {
-            prevRadian = atan2(curY * rotateCorrectValue - center.y, curX * rotateCorrectValue - center.x)
-        }
-        val radian = atan2(curY * rotateCorrectValue - center.y, curX * rotateCorrectValue  - center.x)
-        val newRadian = radian - prevRadian!!
-        prevRadian = radian
-        val degree = Math.toDegrees(newRadian.toDouble())
-        contentsModel.updateRotation(degree.toFloat(), 0f, 0f, 1f)
-        this.updateRotation(degree.toFloat(), 0f, 0f, 1f)
-        val localModelMatrix = modelM
-        controllerMap.forEach { key, value ->
-            val newVector = createVector4DArray(0f, 0f, 0f).apply {
-                Matrix.multiplyMV(this, 0, localModelMatrix, 0, key.directionVector.array, 0)
+    private val rotateControlDragEventHandler: (Float, Float, Float, Float, Float, Float) -> Unit =
+        { pressedScreenX: Float, pressedScreenY: Float, movedScreenX: Float, movedScreenY: Float, prevMovedScreenX: Float, prevMovedScreenY: Float ->
+            val normalizeVector = createVector4DArray(normalizeX(movedScreenX, glWidth), normalizeY(movedScreenY, glHeight), 0f)
+            if (prevRadian == null) {
+                prevRadian = atan2((normalizeVector[1] - center.y) * rotateCorrectValue, (normalizeVector[0] - center.x) * rotateCorrectValue)
             }
-            value.setTranslation(newVector[0], newVector[1], newVector[2])
-        }*/
-    }
+            val radian = atan2((normalizeVector[1] - center.y) * rotateCorrectValue, (normalizeVector[0] - center.x) * rotateCorrectValue)
+            val newRadian = radian - prevRadian!!
+            prevRadian = radian
+            val degree = Math.toDegrees(newRadian.toDouble())
+            contentsModel.updateRotation(degree.toFloat(), 0f, 0f, 1f)
+            this.updateRotation(degree.toFloat(), 0f, 0f, 1f)
+            val localModelMatrix = modelM
+            controllerMap.forEach { key, value ->
+                val newVector = createVector4DArray(0f, 0f, 0f).apply {
+                    Matrix.multiplyMV(this, 0, localModelMatrix, 0, key.directionVector.array, 0)
+                }
+                value.setTranslation(newVector[0], newVector[1], newVector[2])
+            }
+        }
 
     private val controllerMap by lazy {
         hashMapOf(
@@ -224,7 +229,7 @@ internal class OverlayModel(
         return notNormalX >= -1 && notNormalX <= 1 && notNormalY >= -1 && notNormalY <= 1
     }
 
-    override fun onTouchMove(pressedScreenX : Float, pressedScreenY : Float, movedScreenX : Float, movedScreenY : Float, prevMovedScreenX : Float, prevMovedScreenY : Float) {
+    override fun onTouchMove(pressedScreenX: Float, pressedScreenY: Float, movedScreenX: Float, movedScreenY: Float, prevMovedScreenX: Float, prevMovedScreenY: Float) {
         val controllerTouched = controllerMap.values.any { it.isPressed }
         if (controllerTouched) {
             controllerMap.values.forEach {
@@ -234,7 +239,6 @@ internal class OverlayModel(
             if (!isPressed) return
             val normalizeDeltaX = normalizeX(movedScreenX, glWidth) - normalizeX(prevMovedScreenX, glWidth)
             val normalizeDeltaY = normalizeY(movedScreenY, glHeight) - normalizeY(prevMovedScreenY, glHeight)
-            Log.e("godgod", "${normalizeDeltaX}   ${normalizeDeltaY}")
             contentsModel.updateTranslation(normalizeDeltaX, normalizeDeltaY, 0f)
             updateTranslation(normalizeDeltaX, normalizeDeltaY, 0f)
             controllerMap.values.forEach {
